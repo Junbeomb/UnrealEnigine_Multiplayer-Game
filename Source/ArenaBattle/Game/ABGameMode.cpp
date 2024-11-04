@@ -38,6 +38,7 @@ void AABGameMode::PreLogin(const FString& Options, const FString& Address, const
 	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
 
 	Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
+	//ErrorMessage = TEXT("Server Is Full"); //에러 메시지, 클라이언트는 독립된 standalone으로 생성
 
 	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
 }
@@ -56,14 +57,28 @@ void AABGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
 	Super::PostLogin(NewPlayer);
+	UNetDriver* NetDriver = GetNetDriver();
+	if (NetDriver) {
+		if (NetDriver->ClientConnections.Num() == 0) {
+			AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("NO Client Connection"));
+		}
+		else {
+			for (const auto& Connection : NetDriver->ClientConnections) {
+				AB_LOG(LogABNetwork, Log, TEXT("Client Connections : %s"), *Connection->GetName());
+			}
+		}
+	}
+	else {
+		AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("NO NetDriver"));
+	}
+
 	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
 }
 
 //조건이 충족되면 게임 시작
 void AABGameMode::StartPlay()
 {
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
-	Super::StartPlay();
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
-
+	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+	//Super::StartPlay();
+	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
 }
