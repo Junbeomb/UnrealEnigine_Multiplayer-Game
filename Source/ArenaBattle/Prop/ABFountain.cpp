@@ -3,7 +3,8 @@
 
 #include "Prop/ABFountain.h"
 #include "Components/StaticMeshComponent.h"
-
+#include "Net/UnrealNetwork.h"
+#include "ArenaBattle.h"
 // Sets default values
 AABFountain::AABFountain()
 {
@@ -28,12 +29,23 @@ AABFountain::AABFountain()
 	{
 		Water->SetStaticMesh(WaterMeshRef.Object);
 	}
+
+	bReplicates = true;
 }
 
 // Called when the game starts or when spawned
 void AABFountain::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HasAuthority()) {
+		FTimerHandle Handle;
+		GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
+			{
+				ServerRotationYaw += 1.f;
+			}
+		), 1.0f, true, 0.0f);
+	}
 	
 }
 
@@ -42,5 +54,40 @@ void AABFountain::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (HasAuthority()) {
+		//AddActorLocalRotation(FRotator(0.0f, RotationRate * DeltaTime, 0.0f));
+		//ServerRotationYaw = RootComponent->GetComponentRotation().Yaw;
+	}
+
+
+}
+
+void AABFountain::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AABFountain, ServerRotationYaw);
+}
+
+//connection에 대해서 bunch정보를 해석해서
+//액터 리플리케이션에서 어떤 작업을 수행해야 하는지.
+//서버와의 포탈이 열렸다.
+void AABFountain::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connection)
+{
+	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+
+	Super::OnActorChannelOpen(InBunch, Connection);
+
+	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
+}
+
+void AABFountain::OnRep_ServerRotationYaw()
+{
+	AB_LOG(LogABNetwork, Log, TEXT("Yaw : %f"), ServerRotationYaw);
+
+	//Tick에서 사용하지 않고 콜백함수에서 실행. -> 만약 콜백이 Tick보다 더 적게 사용하는 경우에 효율적임.
+	//FRotator NewRotator = RootComponent->GetComponentRotation();
+	//NewRotator.Yaw = ServerRotationYaw;
+	//RootComponent->SetWorldRotation(NewRotator);
 }
 

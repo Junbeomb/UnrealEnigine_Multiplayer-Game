@@ -32,53 +32,53 @@ void AABGameMode::OnPlayerDead()
 //클라이언트의 접속 요청을 처리하는 함수
 // 서버 호스트는 실행되지 않음. 클라이언트만.
 //아직 로그인 상태가 아님.
-void AABGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
-{
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("============================================================"));
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
-
-	Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
-	//ErrorMessage = TEXT("Server Is Full"); //에러 메시지, 클라이언트는 독립된 standalone으로 생성
-
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
-}
-
-//접속을 허용한 클라이언트에 대응하는 플레이어 컨트롤러를 만드는 함수
-APlayerController* AABGameMode::Login(UPlayer* NewPlayer, ENetRole InRemoteRole, const FString& Portal, const FString& Options, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
-{
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
-	APlayerController* NewPlayerController = Super::Login(NewPlayer, InRemoteRole, Portal, Options, UniqueId, ErrorMessage);
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
-	return NewPlayerController;
-}
-
-//플레리어 입장을 위해 플레이어에 필요한 기본 설정을 모두 마무리하는 함수
-void AABGameMode::PostLogin(APlayerController* NewPlayer)
-{
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
-	Super::PostLogin(NewPlayer);
-	UNetDriver* NetDriver = GetNetDriver();
-	if (NetDriver) {
-		if (NetDriver->ClientConnections.Num() == 0) {
-			AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("NO Client Connection"));
-		}
-		else {
-			for (const auto& Connection : NetDriver->ClientConnections) {
-				AB_LOG(LogABNetwork, Log, TEXT("Client Connections : %s"), *Connection->GetName());
-			}
-		}
-	}
-	else {
-		AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("NO NetDriver"));
-	}
-
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
-}
-
-//조건이 충족되면 게임 시작
-void AABGameMode::StartPlay()
-{
-	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
-	//Super::StartPlay();
-	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
-}
+//void AABGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
+//{
+//	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("============================================================"));
+//	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+//
+//	Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
+//	//ErrorMessage = TEXT("Server Is Full"); //에러 메시지, 클라이언트는 독립된 standalone으로 생성
+//
+//	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
+//}
+//
+////접속을 허용한 클라이언트에 대응하는 플레이어 컨트롤러를 만드는 함수
+//APlayerController* AABGameMode::Login(UPlayer* NewPlayer, ENetRole InRemoteRole, const FString& Portal, const FString& Options, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
+//{
+//	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+//	APlayerController* NewPlayerController = Super::Login(NewPlayer, InRemoteRole, Portal, Options, UniqueId, ErrorMessage);
+//	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
+//	return NewPlayerController;
+//}
+//
+////플레리어 입장을 위해 플레이어에 필요한 기본 설정을 모두 마무리하는 함수
+//void AABGameMode::PostLogin(APlayerController* NewPlayer)
+//{
+//	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+//	Super::PostLogin(NewPlayer);
+//	UNetDriver* NetDriver = GetNetDriver();
+//	if (NetDriver) {
+//		if (NetDriver->ClientConnections.Num() == 0) {
+//			AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("NO Client Connection"));
+//		}
+//		else {
+//			for (const auto& Connection : NetDriver->ClientConnections) {
+//				AB_LOG(LogABNetwork, Log, TEXT("Client Connections : %s"), *Connection->GetName());
+//			}
+//		}
+//	}
+//	else {
+//		AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("NO NetDriver"));
+//	}
+//
+//	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
+//}
+//
+////조건이 충족되면 게임 시작
+//void AABGameMode::StartPlay()
+//{
+//	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+//	Super::StartPlay();
+//	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
+//}
