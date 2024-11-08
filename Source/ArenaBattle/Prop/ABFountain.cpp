@@ -31,6 +31,11 @@ AABFountain::AABFountain()
 	}
 
 	bReplicates = true;
+	//업데이트 주기 (기본값 : 100)
+	NetUpdateFrequency = 1.0f;
+	//20미터 반경 안쪽에 있는 엑터들만 연관성 활성화.
+	//범위를 벗어나면 해당 클라에 대한 리플리케이션 비활성화.
+	NetCullDistanceSquared = 4'000'000.0f; 
 }
 
 // Called when the game starts or when spawned
@@ -55,8 +60,23 @@ void AABFountain::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	if (HasAuthority()) {
-		//AddActorLocalRotation(FRotator(0.0f, RotationRate * DeltaTime, 0.0f));
-		//ServerRotationYaw = RootComponent->GetComponentRotation().Yaw;
+		AddActorLocalRotation(FRotator(0.0f, RotationRate * DeltaTime, 0.0f));
+		ServerRotationYaw = RootComponent->GetComponentRotation().Yaw;
+	}
+	else {
+
+		//Client와 Server의 Yaw값 보간.
+		//Client에서는 NetUpdateFrequency 값이 1이므로. (Server는 100)
+		//ClientTimeSinceUpdate += DeltaTime;
+		//if (ClientTimeBetWeenLastUpdate < KINDA_SMALL_NUMBER) return;
+
+		//const float EstimateRotationYaw = ServerRotationYaw + RotationRate * ClientTimeBetWeenLastUpdate;
+		//const float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetWeenLastUpdate;
+
+		//FRotator ClientRotator = RootComponent->GetComponentRotation();
+		//const float ClientNewYaw = FMath::Lerp(ServerRotationYaw, EstimateRotationYaw, LerpRatio); //현재 클라이언트 Tick에서 적용할 Yaw값.
+		//ClientRotator.Yaw = ClientNewYaw;
+		//RootComponent->SetWorldRotation(ClientRotator);
 	}
 
 
@@ -81,13 +101,25 @@ void AABFountain::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connecti
 	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
 }
 
+bool AABFountain::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+{
+	bool NetRelevantResult = Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
+	if (!NetRelevantResult) {
+		AB_LOG(LogABNetwork, Log, TEXT("Not Relevant : [%s] %s"), *RealViewer->GetName(), *SrcLocation.ToCompactString());
+	}
+	return NetRelevantResult;
+}
+
 void AABFountain::OnRep_ServerRotationYaw()
 {
 	AB_LOG(LogABNetwork, Log, TEXT("Yaw : %f"), ServerRotationYaw);
 
 	//Tick에서 사용하지 않고 콜백함수에서 실행. -> 만약 콜백이 Tick보다 더 적게 사용하는 경우에 효율적임.
-	//FRotator NewRotator = RootComponent->GetComponentRotation();
-	//NewRotator.Yaw = ServerRotationYaw;
-	//RootComponent->SetWorldRotation(NewRotator);
+	FRotator NewRotator = RootComponent->GetComponentRotation();
+	NewRotator.Yaw = ServerRotationYaw;
+	RootComponent->SetWorldRotation(NewRotator);
+
+	ClientTimeBetWeenLastUpdate = ClientTimeSinceUpdate;
+	ClientTimeSinceUpdate = 0.0f;
 }
 

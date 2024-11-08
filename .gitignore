@@ -7,6 +7,7 @@ GameData
 Content
 
 Config
+*.bat
 .vscode
 .vs
 .vsconfig
