@@ -34,15 +34,26 @@ public:
 	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;
 	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const;
 
-	//다른 클라이언트로 복제하는 키워드 : Replicated
+	//다른 클라이언트로 복제하는 키워드 : ReplicatedUsing
 	UPROPERTY(ReplicatedUsing = OnRep_ServerRotationYaw) //서버에서 값이 변경이되고 클라에 전달이될때 해당 함수가 실행됨.
 	float ServerRotationYaw;
 
+	UPROPERTY(ReplicatedUsing = OnRep_ServerLightColor)
+	FLinearColor ServerLightColor;
+
+	//UPROPERTY(Replicated)
+	//TArray<float> BigData;
+
+
 	UFUNCTION()
 	void OnRep_ServerRotationYaw();
+
+	UFUNCTION()
+	void OnRep_ServerLightColor();
 
 	float RotationRate = 30.f;
 	float ClientTimeSinceUpdate = 0.0f;
 	float ClientTimeBetWeenLastUpdate = 0.0f;
 
+	//float BigDataElement = 0.0f;
 };

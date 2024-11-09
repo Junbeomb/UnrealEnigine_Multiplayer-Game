@@ -3,6 +3,7 @@
 
 #include "Prop/ABFountain.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "ArenaBattle.h"
 // Sets default values
@@ -36,6 +37,8 @@ AABFountain::AABFountain()
 	//20미터 반경 안쪽에 있는 엑터들만 연관성 활성화.
 	//범위를 벗어나면 해당 클라에 대한 리플리케이션 비활성화.
 	NetCullDistanceSquared = 4'000'000.0f; 
+	//휴면 상태 설정
+	NetDormancy = DORM_Initial;
 }
 
 // Called when the game starts or when spawned
@@ -47,10 +50,21 @@ void AABFountain::BeginPlay()
 		FTimerHandle Handle;
 		GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
 			{
-				ServerRotationYaw += 1.f;
+				//BigData.Init(BigDataElement, 100);
+				//BigDataElement += 1.0f;
+				ServerLightColor = FLinearColor(FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), 1.0f);
+				OnRep_ServerLightColor(); //OnRep함수는 서버에호출 되지 않기 때문에 이렇게 명시적으로 호출.(클라는 당연히 호출)
 			}
 		), 1.0f, true, 0.0f);
+
+		FTimerHandle Handle2;
+		GetWorld()->GetTimerManager().SetTimer(Handle2, FTimerDelegate::CreateLambda([&]
+			{
+				FlushNetDormancy();
+			}
+		), 6.0f, false, -1.0f);
 	}
+	
 	
 }
 
@@ -67,16 +81,16 @@ void AABFountain::Tick(float DeltaTime)
 
 		//Client와 Server의 Yaw값 보간.
 		//Client에서는 NetUpdateFrequency 값이 1이므로. (Server는 100)
-		//ClientTimeSinceUpdate += DeltaTime;
-		//if (ClientTimeBetWeenLastUpdate < KINDA_SMALL_NUMBER) return;
+		ClientTimeSinceUpdate += DeltaTime;
+		if (ClientTimeBetWeenLastUpdate < KINDA_SMALL_NUMBER) return;
 
-		//const float EstimateRotationYaw = ServerRotationYaw + RotationRate * ClientTimeBetWeenLastUpdate;
-		//const float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetWeenLastUpdate;
+		const float EstimateRotationYaw = ServerRotationYaw + RotationRate * ClientTimeBetWeenLastUpdate;
+		const float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetWeenLastUpdate;
 
-		//FRotator ClientRotator = RootComponent->GetComponentRotation();
-		//const float ClientNewYaw = FMath::Lerp(ServerRotationYaw, EstimateRotationYaw, LerpRatio); //현재 클라이언트 Tick에서 적용할 Yaw값.
-		//ClientRotator.Yaw = ClientNewYaw;
-		//RootComponent->SetWorldRotation(ClientRotator);
+		FRotator ClientRotator = RootComponent->GetComponentRotation();
+		const float ClientNewYaw = FMath::Lerp(ServerRotationYaw, EstimateRotationYaw, LerpRatio); //현재 클라이언트 Tick에서 적용할 Yaw값.
+		ClientRotator.Yaw = ClientNewYaw;
+		RootComponent->SetWorldRotation(ClientRotator);
 	}
 
 
@@ -87,6 +101,10 @@ void AABFountain::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AABFountain, ServerRotationYaw);
+	DOREPLIFETIME(AABFountain, ServerLightColor);
+	//DOREPLIFETIME_CONDITION(AABFountain, ServerLightColor, COND_InitialOnly);
+	//DOREPLIFETIME(AABFountain, BigData);
+
 }
 
 //connection에 대해서 bunch정보를 해석해서
@@ -112,7 +130,10 @@ bool AABFountain::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewT
 
 void AABFountain::OnRep_ServerRotationYaw()
 {
-	AB_LOG(LogABNetwork, Log, TEXT("Yaw : %f"), ServerRotationYaw);
+	if (HasAuthority()) {
+
+		//AB_LOG(LogABNetwork, Log, TEXT("Yaw : %f"), ServerRotationYaw);
+	}
 
 	//Tick에서 사용하지 않고 콜백함수에서 실행. -> 만약 콜백이 Tick보다 더 적게 사용하는 경우에 효율적임.
 	FRotator NewRotator = RootComponent->GetComponentRotation();
@@ -121,5 +142,19 @@ void AABFountain::OnRep_ServerRotationYaw()
 
 	ClientTimeBetWeenLastUpdate = ClientTimeSinceUpdate;
 	ClientTimeSinceUpdate = 0.0f;
+}
+
+void AABFountain::OnRep_ServerLightColor()
+{
+	if (!HasAuthority()) {
+		//AB_LOG(LogABNetwork, Log, TEXT("LightColor : %s"), *ServerLightColor.ToString());
+	}
+
+	UPointLightComponent* PointLight = Cast<UPointLightComponent>(GetComponentByClass(UPointLightComponent::StaticClass()));
+
+	if (PointLight) {
+		PointLight->SetLightColor(ServerLightColor);
+	}
+
 }
 
