@@ -32,7 +32,8 @@ public:
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;
-	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const;
+	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
+	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)override;
 
 	//다른 클라이언트로 복제하는 키워드 : ReplicatedUsing
 	UPROPERTY(ReplicatedUsing = OnRep_ServerRotationYaw) //서버에서 값이 변경이되고 클라에 전달이될때 해당 함수가 실행됨.
@@ -50,6 +51,10 @@ public:
 
 	UFUNCTION()
 	void OnRep_ServerLightColor();
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastRPCChangeLightColor(const FLinearColor& NewLightColor);
+
 
 	float RotationRate = 30.f;
 	float ClientTimeSinceUpdate = 0.0f;

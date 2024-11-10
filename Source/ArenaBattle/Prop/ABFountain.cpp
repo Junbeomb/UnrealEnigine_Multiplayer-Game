@@ -52,8 +52,11 @@ void AABFountain::BeginPlay()
 			{
 				//BigData.Init(BigDataElement, 100);
 				//BigDataElement += 1.0f;
-				ServerLightColor = FLinearColor(FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), 1.0f);
-				OnRep_ServerLightColor(); //OnRep함수는 서버에호출 되지 않기 때문에 이렇게 명시적으로 호출.(클라는 당연히 호출)
+				//ServerLightColor = FLinearColor(FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), 1.0f);
+				//OnRep_ServerLightColor(); //OnRep함수는 서버에호출 되지 않기 때문에 이렇게 명시적으로 호출.(클라는 당연히 호출)
+
+				const FLinearColor NewLightColor = FLinearColor(FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), 1.0f);
+				MulticastRPCChangeLightColor(NewLightColor);
 			}
 		), 1.0f, true, 0.0f);
 
@@ -128,6 +131,13 @@ bool AABFountain::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewT
 	return NetRelevantResult;
 }
 
+//분수대 액터는 네트워크로 전송할 준비가 되어있다!
+void AABFountain::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+{
+	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+	Super::PreReplication(ChangedPropertyTracker);
+}
+
 void AABFountain::OnRep_ServerRotationYaw()
 {
 	if (HasAuthority()) {
@@ -154,6 +164,18 @@ void AABFountain::OnRep_ServerLightColor()
 
 	if (PointLight) {
 		PointLight->SetLightColor(ServerLightColor);
+	}
+
+}
+
+void AABFountain::MulticastRPCChangeLightColor_Implementation(const FLinearColor& NewLightColor)
+{
+	AB_LOG(LogABNetwork, Log, TEXT("LightColor : %s"), *NewLightColor.ToString());
+
+	UPointLightComponent* PointLight = Cast<UPointLightComponent>(GetComponentByClass(UPointLightComponent::StaticClass()));
+
+	if (PointLight) {
+		PointLight->SetLightColor(NewLightColor);
 	}
 
 }
