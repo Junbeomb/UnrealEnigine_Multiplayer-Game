@@ -6,6 +6,7 @@
 #include "Components/PointLightComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "ArenaBattle.h"
+#include "EngineUtils.h"
 // Sets default values
 AABFountain::AABFountain()
 {
@@ -56,19 +57,36 @@ void AABFountain::BeginPlay()
 				//OnRep_ServerLightColor(); //OnRep함수는 서버에호출 되지 않기 때문에 이렇게 명시적으로 호출.(클라는 당연히 호출)
 
 				const FLinearColor NewLightColor = FLinearColor(FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), 1.0f);
-				MulticastRPCChangeLightColor(NewLightColor);
+				//MulticastRPCChangeLightColor(NewLightColor);
+				ClientRPCChangeLightColor(NewLightColor);
+				
 			}
 		), 1.0f, true, 0.0f);
 
 		FTimerHandle Handle2;
 		GetWorld()->GetTimerManager().SetTimer(Handle2, FTimerDelegate::CreateLambda([&]
 			{
-				FlushNetDormancy();
+				//10초후에 owner 설정
+				for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
+					if (PlayerController && !PlayerController->IsLocalPlayerController()) {
+						SetOwner(PlayerController);
+						break;
+					}
+				}
 			}
-		), 6.0f, false, -1.0f);
+		), 10.0f, false, -1.0f);
+
+		
 	}
-	
-	
+	else {
+		//SetOwner(GetWorld()->GetFirstPlayerController());
+		/*FTimerHandle Handle;
+		GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
+			{
+				ServerRPCChangeLightColor();
+			}
+		), 1.0f, true, 0.0f);*/
+	}
 }
 
 // Called every frame
@@ -81,7 +99,6 @@ void AABFountain::Tick(float DeltaTime)
 		ServerRotationYaw = RootComponent->GetComponentRotation().Yaw;
 	}
 	else {
-
 		//Client와 Server의 Yaw값 보간.
 		//Client에서는 NetUpdateFrequency 값이 1이므로. (Server는 100)
 		ClientTimeSinceUpdate += DeltaTime;
@@ -166,6 +183,28 @@ void AABFountain::OnRep_ServerLightColor()
 		PointLight->SetLightColor(ServerLightColor);
 	}
 
+}
+
+void AABFountain::ClientRPCChangeLightColor_Implementation(const FLinearColor& NewLightColor)
+{
+	AB_LOG(LogABNetwork, Log, TEXT("LightColor : %s"), *NewLightColor.ToString());
+
+	UPointLightComponent* PointLight = Cast<UPointLightComponent>(GetComponentByClass(UPointLightComponent::StaticClass()));
+
+	if (PointLight) {
+		PointLight->SetLightColor(NewLightColor);
+	}
+}
+
+bool AABFountain::ServerRPCChangeLightColor_Validate()
+{
+	return true;
+}
+
+void AABFountain::ServerRPCChangeLightColor_Implementation()
+{
+	const FLinearColor NewLightColor = FLinearColor(FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), 1.0f);
+	MulticastRPCChangeLightColor(NewLightColor);
 }
 
 void AABFountain::MulticastRPCChangeLightColor_Implementation(const FLinearColor& NewLightColor)
