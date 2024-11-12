@@ -39,7 +39,7 @@ AABFountain::AABFountain()
 	//범위를 벗어나면 해당 클라에 대한 리플리케이션 비활성화.
 	NetCullDistanceSquared = 4'000'000.0f; 
 	//휴면 상태 설정
-	NetDormancy = DORM_Initial;
+	//NetDormancy = DORM_Initial;
 }
 
 // Called when the game starts or when spawned
@@ -58,7 +58,7 @@ void AABFountain::BeginPlay()
 
 				const FLinearColor NewLightColor = FLinearColor(FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), 1.0f);
 				//MulticastRPCChangeLightColor(NewLightColor);
-				ClientRPCChangeLightColor(NewLightColor);
+				//ClientRPCChangeLightColor(NewLightColor);
 				
 			}
 		), 1.0f, true, 0.0f);
@@ -66,15 +66,13 @@ void AABFountain::BeginPlay()
 		FTimerHandle Handle2;
 		GetWorld()->GetTimerManager().SetTimer(Handle2, FTimerDelegate::CreateLambda([&]
 			{
-				//10초후에 owner 설정
-				for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
-					if (PlayerController && !PlayerController->IsLocalPlayerController()) {
-						SetOwner(PlayerController);
-						break;
-					}
-				}
+				//ServerLightColor = FLinearColor(FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), 1.0f);
+				//OnRep_ServerLightColor(); 
+
+				const FLinearColor NewLightColor = FLinearColor(FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), FMath::RandRange(0.0f, 1.f), 1.0f);
+				MulticastRPCChangeLightColor(NewLightColor);
 			}
-		), 10.0f, false, -1.0f);
+		), 5.0f, false, -1.0f);
 
 		
 	}
@@ -130,30 +128,30 @@ void AABFountain::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 //connection에 대해서 bunch정보를 해석해서
 //액터 리플리케이션에서 어떤 작업을 수행해야 하는지.
 //서버와의 포탈이 열렸다.
-void AABFountain::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connection)
-{
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
-
-	Super::OnActorChannelOpen(InBunch, Connection);
-
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
-}
-
-bool AABFountain::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
-{
-	bool NetRelevantResult = Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
-	if (!NetRelevantResult) {
-		AB_LOG(LogABNetwork, Log, TEXT("Not Relevant : [%s] %s"), *RealViewer->GetName(), *SrcLocation.ToCompactString());
-	}
-	return NetRelevantResult;
-}
-
-//분수대 액터는 네트워크로 전송할 준비가 되어있다!
-void AABFountain::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
-{
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
-	Super::PreReplication(ChangedPropertyTracker);
-}
+//void AABFountain::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connection)
+//{
+//	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+//
+//	Super::OnActorChannelOpen(InBunch, Connection);
+//
+//	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
+//}
+//
+//bool AABFountain::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+//{
+//	bool NetRelevantResult = Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
+//	if (!NetRelevantResult) {
+//		AB_LOG(LogABNetwork, Log, TEXT("Not Relevant : [%s] %s"), *RealViewer->GetName(), *SrcLocation.ToCompactString());
+//	}
+//	return NetRelevantResult;
+//}
+//
+////분수대 액터는 네트워크로 전송할 준비가 되어있다!
+//void AABFountain::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+//{
+//	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+//	Super::PreReplication(ChangedPropertyTracker);
+//}
 
 void AABFountain::OnRep_ServerRotationYaw()
 {
