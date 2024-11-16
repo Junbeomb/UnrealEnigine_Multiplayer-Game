@@ -498,4 +498,9 @@ void AABCharacterPlayer::SetupHUDWidget(UABHUDWidget* InHUDWidget)
 void AABCharacterPlayer::Teleport()
 {
 	AB_LOG(LogABTeleport, Log, TEXT("%s"), TEXT("Begin"));
+
+	UABCharacterMovementComponent* ABMovement = Cast<UABCharacterMovementComponent>(GetCharacterMovement());
+	if (ABMovement) {
+		ABMovement->SetTeleportCommand();
+	}
 }
