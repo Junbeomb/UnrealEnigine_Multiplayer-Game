@@ -1,12 +1,13 @@
-Binaries
-DerivedDataCache
-Intermediate
-Saved
-GameData
+/Binaries
+/DerivedDataCache
+/Intermediate
+/Saved
+/GameData
+/Platforms
 
-Content
+/Content
 
-Config
+/Config
 *.bat
 .vscode
 .vs
