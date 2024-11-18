@@ -23,7 +23,6 @@
 #include "Components/WidgetComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "Engine/AssetManager.h"
-#include "math.h"
 
 AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer.SetDefaultSubobjectClass<UABCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -281,16 +280,15 @@ void AABCharacterPlayer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 void AABCharacterPlayer::Attack()
 {
-	//ProcessComboCommand();
+	ProcessComboCommand();
 	if (bCanAttack) {
 
 		if (!HasAuthority()) {
 			bCanAttack = false;
-			GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
-			
+
 			GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, AttackTime, false);
 
-			PlayAttackAnimation();
+			//PlayAttackAnimation();
 		}
 
 		ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds());
@@ -371,6 +369,7 @@ bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
 	if (LastAttackStartTime == 0.0f) {
 		return true;
 	}
+	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
 
 	return (AttackStartTime - LastAttackStartTime) > (AttackTime - 0.4f);
 }
@@ -378,7 +377,6 @@ bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
 void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 {
 	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
-
 	bCanAttack = false;
 	OnRep_CanAttack();
 
@@ -386,10 +384,10 @@ void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 	AB_LOG(LogABNetwork, Log, TEXT("LagTime : %f"), AttackTimeDifference);
 	AttackTimeDifference = FMath::Clamp(AttackTimeDifference, 0.0f, AttackTime - 0.01f);
 
-	GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, AttackTimeDifference, false);
+	GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, std::max(0.f,AttackTime - AttackTimeDifference), false);
 
 	LastAttackStartTime = AttackStartTime;
-	PlayAttackAnimation();
+	//PlayAttackAnimation();
 
 	//MulticastRPCAttack();
 	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
@@ -422,7 +420,7 @@ void AABCharacterPlayer::MulticastRPCAttack_Implementation()
 bool AABCharacterPlayer::ServerRPCNotifyHit_Validate(const FHitResult& HitResult, float HitCheckTime)
 {
 	return (HitCheckTime - LastAttackStartTime) > AcceptMinCheckTime;
-}
+} 
 
 void AABCharacterPlayer::ServerRPCNotifyHit_Implementation(const FHitResult& HitResult, float HitCheckTime)
 {
@@ -512,6 +510,7 @@ void AABCharacterPlayer::ResetPlayer()
 void AABCharacterPlayer::ResetAttack()
 {
 	bCanAttack = true;
+	AB_LOG(LogABNetwork, Warning, TEXT("%s"), TEXT("Reset Attack!!!!!!"));
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 }
 

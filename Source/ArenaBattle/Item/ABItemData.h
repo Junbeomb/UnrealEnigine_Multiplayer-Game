@@ -9,7 +9,8 @@
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {
-	Weapon = 0,
+	Weapon_Sword = 0,
+	Weapon_Gun,
 	Potion,
 	Scroll
 };

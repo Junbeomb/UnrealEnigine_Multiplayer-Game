@@ -185,7 +185,7 @@ void AABFountain::OnRep_ServerLightColor()
 
 void AABFountain::ClientRPCChangeLightColor_Implementation(const FLinearColor& NewLightColor)
 {
-	AB_LOG(LogABNetwork, Log, TEXT("LightColor : %s"), *NewLightColor.ToString());
+	//AB_LOG(LogABNetwork, Log, TEXT("LightColor : %s"), *NewLightColor.ToString());
 
 	UPointLightComponent* PointLight = Cast<UPointLightComponent>(GetComponentByClass(UPointLightComponent::StaticClass()));
 
@@ -207,7 +207,7 @@ void AABFountain::ServerRPCChangeLightColor_Implementation()
 
 void AABFountain::MulticastRPCChangeLightColor_Implementation(const FLinearColor& NewLightColor)
 {
-	AB_LOG(LogABNetwork, Log, TEXT("LightColor : %s"), *NewLightColor.ToString());
+	//AB_LOG(LogABNetwork, Log, TEXT("LightColor : %s"), *NewLightColor.ToString());
 
 	UPointLightComponent* PointLight = Cast<UPointLightComponent>(GetComponentByClass(UPointLightComponent::StaticClass()));
 

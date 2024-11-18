@@ -13,6 +13,7 @@
 #include "UI/ABWidgetComponent.h"
 #include "UI/ABHpBarWidget.h"
 #include "Item/ABItems.h"
+#include "ArenaBattle.h"
 
 DEFINE_LOG_CATEGORY(LogABCharacter);
 
@@ -103,12 +104,16 @@ AABCharacterBase::AABCharacterBase(const FObjectInitializer& ObjectInitializer)
 
 	// Item Actions
 	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &AABCharacterBase::EquipWeapon)));
+	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &AABCharacterBase::EquipWeapon))); //enum의 0은 sword 1은 gun 이므로 둘다 EquipWeapon 실행.
 	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &AABCharacterBase::DrinkPotion)));
 	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &AABCharacterBase::ReadScroll)));
 
 	// Weapon Component
-	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Weapon"));
-	Weapon->SetupAttachment(GetMesh(), TEXT("hand_rSocket"));
+	SwordWeapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SwordWeapon"));
+	SwordWeapon->SetupAttachment(GetMesh(), TEXT("hand_rSocket"));
+
+	GunWeapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("GunWeapon"));
+	GunWeapon->SetupAttachment(GetMesh(), TEXT("hand_rSocket_Gun"));
 }
 
 void AABCharacterBase::PostInitializeComponents()
@@ -279,6 +284,8 @@ void AABCharacterBase::TakeItem(UABItemData* InItemData)
 {
 	if (InItemData)
 	{
+		//AB_LOG(LogABNetwork, Warning, TEXT("%s"), TEXT("WeaponItemData!!!"));
+		//Item Type에 따라 어떤 함수를 실행?, 타입이0이면 Weapon_Sword.
 		TakeItemActions[(uint8)InItemData->Type].ItemDelegate.ExecuteIfBound(InItemData);
 	}
 }
@@ -297,13 +304,17 @@ void AABCharacterBase::DrinkPotion(UABItemData* InItemData)
 void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 {
 	UABWeaponItemData* WeaponItemData = Cast<UABWeaponItemData>(InItemData);
+
 	if (WeaponItemData)
 	{
 		if (WeaponItemData->WeaponMesh.IsPending())
 		{
 			WeaponItemData->WeaponMesh.LoadSynchronous();
 		}
-		Weapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
+		if (WeaponItemData->Type == EItemType::Weapon_Gun)
+			GunWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
+		if(WeaponItemData->Type == EItemType::Weapon_Sword)
+			SwordWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
 	}
 	if (HasAuthority()) {
 		if (WeaponItemData) {
