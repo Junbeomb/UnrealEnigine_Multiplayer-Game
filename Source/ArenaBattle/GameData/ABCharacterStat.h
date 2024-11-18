@@ -51,6 +51,7 @@ public:
 		MaxHp = (float)uMaxHp;
 
 		uint32 uAttack = (uint32)Attack;
+
 		Ar.SerializeIntPacked(uAttack);
 		Attack = (float)uAttack;
 
