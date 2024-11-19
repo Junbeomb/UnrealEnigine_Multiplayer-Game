@@ -276,7 +276,10 @@ void AABCharacterPlayer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	//서버와 클라이언트간에 해당 변수 동기화.
+	//서버가 값을 바꾸면 클라이언트에도 적용. 반대는 적용 안됨.
 	DOREPLIFETIME(AABCharacterPlayer, bCanAttack);
+	DOREPLIFETIME(AABCharacterPlayer, bCanGunAttack);
 
 }
 
@@ -292,55 +295,38 @@ void AABCharacterPlayer::SwordAttack()
 {
 	if (!bCanAttack)return;
 
-	bCanAttack = false;
-	ProcessComboCommand();
-	AttackTime = 1.4667f;
-	if (!HasAuthority()) {
+	//ProcessComboCommand();
+	if (!HasAuthority()) { //일단 클라 본인 실행
+		bCanAttack = false;
 		GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, AttackTime, false);
-	}
-	else {
-		//클라는 자동호출
-		OnRep_CanAttack();
+		PlayAttackAnim();
 	}
 
-	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds());
+	//서버도 실행
+	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds(), false);
 }
 
 void AABCharacterPlayer::GunAttack()
 {
 	if (!bCanGunAttack) return;
 
-	bCanGunAttack = false;
-
-	PlayAttackGunAnim();
-
-	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
-		if (PlayerController && GetController() == PlayerController)  continue;
-		if (!PlayerController->IsLocalController()) continue;
-
-		AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController->GetPawn());
-		if (OtherPlayer) {
-			OtherPlayer->ClientRPCPlayAnimation(this);
-		}
+	if (!HasAuthority()) {
+		bCanGunAttack = false;
+		PlayAttackAnim();
 	}
+
+	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds(),true);
 }
 
 void AABCharacterPlayer::GunAttackFinished()
 {
 	if (bCanGunAttack) return;
 
-	//AB_LOG(LogABNetwork, Warning, TEXT("%s"), TEXT("GunFinished"));
 	bCanGunAttack = true;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	AnimInstance->StopAllMontages(0.0f);
-}
 
-
-void AABCharacterPlayer::PlayAttackGunAnim()
-{
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	AnimInstance->StopAllMontages(0.0f);
-	AnimInstance->Montage_Play(GunFireMontage);
+	ServerRPCFinishAttack();
 }
 
 void AABCharacterPlayer::AttackHitCheck()
@@ -404,50 +390,91 @@ void AABCharacterPlayer::DrawDebugAttackRange(const FColor& DrawColor, FVector T
 #endif
 }
 
-bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
+//공격 취소
+bool AABCharacterPlayer::ServerRPCFinishAttack_Validate()
+{
+		return true;
+}
+
+//공격 취소
+void AABCharacterPlayer::ServerRPCFinishAttack_Implementation()
+{
+	bCanGunAttack = true;
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->StopAllMontages(0.0f);
+	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
+		if (!PlayerController || GetController() == PlayerController)  continue;
+		if (PlayerController->IsLocalController()) continue;
+
+		AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController->GetPawn());
+		if (!OtherPlayer) continue;
+
+		OtherPlayer->ClientRPCStopAnimation(this);
+	}
+}
+
+bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime, bool noTime)
 {
 	if (LastAttackStartTime == 0.0f) {
 		return true;
 	}
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
 
 	return (AttackStartTime - LastAttackStartTime) > (AttackTime - 0.4f);
 }
 
-void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
+void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime, bool noTime)
 {
 
-	AttackTimeDifference = GetWorld()->GetTimeSeconds() - AttackStartTime;
-	AttackTimeDifference = FMath::Clamp(AttackTimeDifference, 0.0f, AttackTime - 0.01f);
-	//AB_LOG(LogABNetwork, Log, TEXT("LagTime : %f"), AttackTimeDifference);
+	if (!noTime) { //sword attack
+		bCanAttack = false;
+		OnRep_CanAttack();
 
-	GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, std::max(0.f,AttackTime - AttackTimeDifference), false);
+		AttackTimeDifference = GetWorld()->GetTimeSeconds() - AttackStartTime;
+		AttackTimeDifference = FMath::Clamp(AttackTimeDifference, 0.0f, AttackTime - 0.01f);
 
-	LastAttackStartTime = AttackStartTime;
+		GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, std::max(0.f,AttackTime - AttackTimeDifference), false);
 
+		LastAttackStartTime = AttackStartTime;
+
+		PlayAttackAnim();
+	}
+	else { //gun attack
+		bCanGunAttack = false;
+		PlayAttackAnim();
+	}
+
+	//MulticastRPCAttack();
+	//나를 제외한 다른 클라에서도 실행.
 	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
-		if (PlayerController && GetController() == PlayerController)  continue;
-		if (!PlayerController->IsLocalController()) continue;
+		if (!PlayerController || GetController() == PlayerController)  continue;
+		if (PlayerController->IsLocalController()) continue;
 
 		AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController->GetPawn());
-		if (OtherPlayer) {
-			OtherPlayer->ClientRPCPlayAnimation(this);
-		}
+		if (!OtherPlayer) continue;
+
+		OtherPlayer->ClientRPCPlayAnimation(this);
 	}
 }
 
 void AABCharacterPlayer::ClientRPCPlayAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
 {
-	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
-	if (CharacterToPlay) {
-		CharacterToPlay->AttackFuncPtr;
-	}
+	if (!CharacterToPlay) return;
+
+	CharacterToPlay->PlayAttackAnim();
+}
+void AABCharacterPlayer::ClientRPCStopAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
+{
+	if (!CharacterToPlay) return;
+
+	CharacterToPlay->StopAnimMontage();
 }
 
+
+//시전자 본인에게도 패킷을 보내므로 ClientRPC를 사용하는 것이 최적화에 좋음.
 void AABCharacterPlayer::MulticastRPCAttack_Implementation()
 {
 	if (!IsLocallyControlled()) {
-		PlayAttackGunAnim();
+		PlayAttackAnim();
 	}
 }
 
@@ -544,7 +571,6 @@ void AABCharacterPlayer::ResetPlayer()
 void AABCharacterPlayer::ResetAttack()
 {
 	bCanAttack = true;
-	AB_LOG(LogABNetwork, Warning, TEXT("%s"), TEXT("Reset Attack!!!!!!"));
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 }
 
@@ -574,3 +600,4 @@ void AABCharacterPlayer::OnRep_PlayerState()
 
 	UpdateMeshFromPlayerState();
 }
+

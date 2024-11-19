@@ -83,20 +83,23 @@ protected:
 	void GunAttack() override;
 	void GunAttackFinished();
 
-
-	void PlayAttackGunAnim();
 	virtual void AttackHitCheck() override;
 	void AttackHitConfirm(AActor* HitActor);
 	void DrawDebugAttackRange(const FColor& DrawColor, FVector TraceStart, FVector TraceEnd, FVector Forward);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerRPCAttack(float AttackStartTime);
+	void ServerRPCAttack(float AttackStartTime,bool noTime);
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerRPCFinishAttack();
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastRPCAttack();
 
 	UFUNCTION(Client,Unreliable)
 	void ClientRPCPlayAnimation(AABCharacterPlayer* CharacterToPlay);
+
+	UFUNCTION(Client, Unreliable)
+	void ClientRPCStopAnimation(AABCharacterPlayer* CharacterToPlay);
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRPCNotifyHit(const FHitResult& HitResult, float HitCheckTime);
@@ -110,6 +113,7 @@ protected:
 	UFUNCTION()
 	void OnRep_CanAttack();
 
+	UPROPERTY(Replicated)
 	uint8 bCanGunAttack : 1;
 
 

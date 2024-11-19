@@ -142,6 +142,13 @@ void AABCharacterBase::SetCharacterControlData(const UABCharacterControlData* Ch
 	GetCharacterMovement()->RotationRate = CharacterControlData->RotationRate;
 }
 
+void AABCharacterBase::PlayAttackAnim()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->StopAllMontages(0.0f);
+	AnimInstance->Montage_Play(MainAttackMontage);
+}
+
 void AABCharacterBase::ProcessComboCommand()
 {
 	if (CurrentCombo == 0)
@@ -322,7 +329,7 @@ void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 
 		if (WeaponItemData->Type == EItemType::Weapon_Gun) {
 			AttackFuncPtr = &AABCharacterBase::GunAttack;
-			AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Gun!!!!"));
+			MainAttackMontage = GunFireMontage;
 			Stat->SetCurrentStat(ECharacterStatus::GunMode);
 			GunWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
 			SwordWeapon->SetSkeletalMesh(NULL);
@@ -330,7 +337,7 @@ void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 		}
 		if (WeaponItemData->Type == EItemType::Weapon_Sword) {
 			AttackFuncPtr = &AABCharacterBase::SwordAttack;
-			AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Sword!!!!"));
+			MainAttackMontage = ComboActionMontage;
 			Stat->SetCurrentStat(ECharacterStatus::SwordMode);
 			SwordWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
 			GunWeapon->SetSkeletalMesh(NULL);
