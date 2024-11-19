@@ -34,6 +34,7 @@ void AABPlayerController::PostNetInit()
 	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
 
 	Super::PostNetInit();
+
 	UNetDriver* NetDriver = GetNetDriver();
 	if (NetDriver->ServerConnection) {
 		AB_LOG(LogABNetwork, Log, TEXT("Server Connections : %s"), *NetDriver->ServerConnection->GetName());

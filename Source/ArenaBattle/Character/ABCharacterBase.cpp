@@ -14,6 +14,7 @@
 #include "UI/ABHpBarWidget.h"
 #include "Item/ABItems.h"
 #include "ArenaBattle.h"
+#include "Animation/ABAnimInstance.h"
 
 DEFINE_LOG_CATEGORY(LogABCharacter);
 
@@ -311,10 +312,18 @@ void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 		{
 			WeaponItemData->WeaponMesh.LoadSynchronous();
 		}
-		if (WeaponItemData->Type == EItemType::Weapon_Gun)
+		UABAnimInstance* AnimInstance = Cast<UABAnimInstance>(GetMesh()->GetAnimInstance());
+
+		if (WeaponItemData->Type == EItemType::Weapon_Gun) {
 			GunWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
-		if(WeaponItemData->Type == EItemType::Weapon_Sword)
+			SwordWeapon->SetSkeletalMesh(NULL);
+			AnimInstance->ChangeGunMode(true);
+		}
+		if (WeaponItemData->Type == EItemType::Weapon_Sword) {
 			SwordWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
+			GunWeapon->SetSkeletalMesh(NULL);
+			AnimInstance->ChangeGunMode(false);
+		}
 	}
 	if (HasAuthority()) {
 		if (WeaponItemData) {

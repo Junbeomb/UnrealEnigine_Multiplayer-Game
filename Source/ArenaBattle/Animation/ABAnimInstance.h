@@ -17,6 +17,8 @@ class ARENABATTLE_API UABAnimInstance : public UAnimInstance
 public:
 	UABAnimInstance();
 
+	void ChangeGunMode(bool);
+
 protected:
 	virtual void NativeInitializeAnimation() override;
 
@@ -33,6 +35,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Character)
 	float GroundSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Character)
+	float IsGunMode;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Character)
 	uint8 bIsIdle : 1;

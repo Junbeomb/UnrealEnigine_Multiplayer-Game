@@ -122,7 +122,6 @@ void AABCharacterPlayer::OnRep_Owner()
 {
 	AB_LOG(LogABNetwork, Log, TEXT("%s %s"),*GetName(), TEXT("Begin"));
 
-
 	Super::OnRep_Owner();
 
 	//나를 누가 소유하는지?

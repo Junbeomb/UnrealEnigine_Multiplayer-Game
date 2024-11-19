@@ -9,6 +9,15 @@ UABAnimInstance::UABAnimInstance()
 {
 	MovingThreshould = 3.0f;
 	JumpingThreshould = 100.0f;
+	IsGunMode = 0.f;
+}
+
+void UABAnimInstance::ChangeGunMode(bool IsGun)
+{
+	if(IsGun)
+		IsGunMode = 100.f;
+	else
+		IsGunMode = 0.f;
 }
 
 void UABAnimInstance::NativeInitializeAnimation()
