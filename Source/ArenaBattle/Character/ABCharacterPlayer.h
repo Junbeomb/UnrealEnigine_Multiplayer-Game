@@ -62,6 +62,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> AttackAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> AttackActionRelease;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> TeleportAction;
@@ -75,8 +77,14 @@ protected:
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+
 	void Attack();
-	void PlayAttackAnimation();
+	void SwordAttack() override;
+	void GunAttack() override;
+	void GunAttackFinished();
+
+
+	void PlayAttackGunAnim();
 	virtual void AttackHitCheck() override;
 	void AttackHitConfirm(AActor* HitActor);
 	void DrawDebugAttackRange(const FColor& DrawColor, FVector TraceStart, FVector TraceEnd, FVector Forward);
@@ -102,7 +110,9 @@ protected:
 	UFUNCTION()
 	void OnRep_CanAttack();
 
-	float AttackTime = 1.4667f;
+	uint8 bCanGunAttack : 1;
+
+
 	float LastAttackStartTime = 0.0f;
 	float AttackTimeDifference = 0.0f;
 	float AcceptCheckDistance = 300.f;

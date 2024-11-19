@@ -5,6 +5,14 @@
 #include "Engine/DataTable.h"
 #include "ABCharacterStat.generated.h"
 
+UENUM()
+enum class ECharacterStatus : uint8
+{
+	IdleMode,
+	SwordMode,
+	GunMode
+};
+
 USTRUCT(BlueprintType)
 struct FABCharacterStat : public FTableRowBase
 {
@@ -12,6 +20,9 @@ struct FABCharacterStat : public FTableRowBase
 
 public:
 	FABCharacterStat() : MaxHp(0.0f), Attack(0.0f), AttackRange(0.0f), AttackSpeed(0.0f) {}
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stat)
+	ECharacterStatus CurrentStatus{ ECharacterStatus::IdleMode };
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stat)
 	float MaxHp;
@@ -27,6 +38,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stat)
 	float MovementSpeed;
+
+
+
 
 	FABCharacterStat operator+(const FABCharacterStat& Other) const
 	{

@@ -49,9 +49,16 @@ protected:
 
 // Combo Action Section
 protected:
+	float AttackTime = 0.1f;
+	virtual void SwordAttack() {};
+	virtual void GunAttack() {};
+	void (AABCharacterBase::* AttackFuncPtr)();
+	
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 	TObjectPtr<class UAnimMontage> ComboActionMontage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	TObjectPtr<class UAnimMontage> GunFireMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UABComboActionData> ComboActionData;

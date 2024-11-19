@@ -74,6 +74,12 @@ AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializ
 		AttackAction = InputActionAttackRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> InputActionAttackReleaseRef(TEXT("/Script/EnhancedInput.InputAction'/Game/ArenaBattle/Input/Actions/IA_Attack_Release.IA_Attack_Release'"));
+	if (nullptr != InputActionAttackReleaseRef.Object)
+	{
+		AttackActionRelease = InputActionAttackReleaseRef.Object;
+	}
+
 	static ConstructorHelpers::FObjectFinder<UInputAction> InputActionTeleportRef(TEXT("/Script/EnhancedInput.InputAction'/Game/ArenaBattle/Input/Actions/IA_Teleport.IA_Teleport'"));
 	if (nullptr != InputActionTeleportRef.Object)
 	{
@@ -134,17 +140,13 @@ void AABCharacterPlayer::OnRep_Owner()
 	}
 
 	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
-
 }
 
 void AABCharacterPlayer::PostNetInit()
 {
 	AB_LOG(LogABNetwork, Log, TEXT("%s %s"), TEXT("Begin"),*GetName());
 
-
 	Super::PostNetInit();
-
-	
 
 	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
 }
@@ -162,6 +164,7 @@ void AABCharacterPlayer::SetupPlayerInputComponent(class UInputComponent* Player
 	EnhancedInputComponent->BindAction(ShoulderLookAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::ShoulderLook);
 	EnhancedInputComponent->BindAction(QuaterMoveAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::QuaterMove);
 	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Attack);
+	EnhancedInputComponent->BindAction(AttackActionRelease, ETriggerEvent::Triggered, this, &AABCharacterPlayer::GunAttackFinished);
 	EnhancedInputComponent->BindAction(TeleportAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Teleport);
 }
 
@@ -277,29 +280,67 @@ void AABCharacterPlayer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 }
 
+//공격!!
 void AABCharacterPlayer::Attack()
 {
-	ProcessComboCommand();
-	if (bCanAttack) {
-
-		if (!HasAuthority()) {
-			bCanAttack = false;
-
-			GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, AttackTime, false);
-
-			//PlayAttackAnimation();
-		}
-
-		ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds());
-
+	if (AttackFuncPtr) {
+		(this->*AttackFuncPtr)();
 	}
 }
 
-void AABCharacterPlayer::PlayAttackAnimation()
+void AABCharacterPlayer::SwordAttack()
+{
+	if (!bCanAttack)return;
+
+	bCanAttack = false;
+	ProcessComboCommand();
+	AttackTime = 1.4667f;
+	if (!HasAuthority()) {
+		GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, AttackTime, false);
+	}
+	else {
+		//클라는 자동호출
+		OnRep_CanAttack();
+	}
+
+	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds());
+}
+
+void AABCharacterPlayer::GunAttack()
+{
+	if (!bCanGunAttack) return;
+
+	bCanGunAttack = false;
+
+	PlayAttackGunAnim();
+
+	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
+		if (PlayerController && GetController() == PlayerController)  continue;
+		if (!PlayerController->IsLocalController()) continue;
+
+		AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController->GetPawn());
+		if (OtherPlayer) {
+			OtherPlayer->ClientRPCPlayAnimation(this);
+		}
+	}
+}
+
+void AABCharacterPlayer::GunAttackFinished()
+{
+	if (bCanGunAttack) return;
+
+	//AB_LOG(LogABNetwork, Warning, TEXT("%s"), TEXT("GunFinished"));
+	bCanGunAttack = true;
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->StopAllMontages(0.0f);
+}
+
+
+void AABCharacterPlayer::PlayAttackGunAnim()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	AnimInstance->StopAllMontages(0.0f);
-	AnimInstance->Montage_Play(ComboActionMontage);
+	AnimInstance->Montage_Play(GunFireMontage);
 }
 
 void AABCharacterPlayer::AttackHitCheck()
@@ -309,7 +350,7 @@ void AABCharacterPlayer::AttackHitCheck()
 
 		AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
 		FHitResult OutHitResult;
-		FCollisionQueryParams Params(SCENE_QUERY_STAT(Attack), false, this);
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(SwordAttack), false, this);
 
 		const float AttackRange = Stat->GetTotalStat().AttackRange;
 		const float AttackRadius = Stat->GetAttackRadius();
@@ -375,44 +416,38 @@ bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
 
 void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 {
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
-	bCanAttack = false;
-	OnRep_CanAttack();
 
 	AttackTimeDifference = GetWorld()->GetTimeSeconds() - AttackStartTime;
-	AB_LOG(LogABNetwork, Log, TEXT("LagTime : %f"), AttackTimeDifference);
 	AttackTimeDifference = FMath::Clamp(AttackTimeDifference, 0.0f, AttackTime - 0.01f);
+	//AB_LOG(LogABNetwork, Log, TEXT("LagTime : %f"), AttackTimeDifference);
 
 	GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, std::max(0.f,AttackTime - AttackTimeDifference), false);
 
 	LastAttackStartTime = AttackStartTime;
-	//PlayAttackAnimation();
 
-	//MulticastRPCAttack();
 	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
-		if (PlayerController && GetController() != PlayerController) {
-			if (PlayerController->IsLocalController()) {
-				AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController -> GetPawn());
-				if (OtherPlayer) {
-					OtherPlayer->ClientRPCPlayAnimation(this);
-				}
-			}
+		if (PlayerController && GetController() == PlayerController)  continue;
+		if (!PlayerController->IsLocalController()) continue;
+
+		AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController->GetPawn());
+		if (OtherPlayer) {
+			OtherPlayer->ClientRPCPlayAnimation(this);
 		}
 	}
 }
 
 void AABCharacterPlayer::ClientRPCPlayAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
 {
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
 	if (CharacterToPlay) {
-		CharacterToPlay->PlayAttackAnimation();
+		CharacterToPlay->AttackFuncPtr;
 	}
 }
 
 void AABCharacterPlayer::MulticastRPCAttack_Implementation()
 {
 	if (!IsLocallyControlled()) {
-		PlayAttackAnimation();
+		PlayAttackGunAnim();
 	}
 }
 

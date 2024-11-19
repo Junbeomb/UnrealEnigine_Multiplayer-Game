@@ -75,6 +75,12 @@ AABCharacterBase::AABCharacterBase(const FObjectInitializer& ObjectInitializer)
 		ComboActionMontage = ComboActionMontageRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> GunFireMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/ArenaBattle/Animation/RIfleAnim/AM_RifleFire.AM_RifleFire'"));
+	if (GunFireMontageRef.Object)
+	{
+		GunFireMontage = GunFireMontageRef.Object;
+	}
+
 	static ConstructorHelpers::FObjectFinder<UABComboActionData> ComboActionDataRef(TEXT("/Script/ArenaBattle.ABComboActionData'/Game/ArenaBattle/CharacterAction/ABA_ComboAttack.ABA_ComboAttack'"));
 	if (ComboActionDataRef.Object)
 	{
@@ -315,11 +321,17 @@ void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 		UABAnimInstance* AnimInstance = Cast<UABAnimInstance>(GetMesh()->GetAnimInstance());
 
 		if (WeaponItemData->Type == EItemType::Weapon_Gun) {
+			AttackFuncPtr = &AABCharacterBase::GunAttack;
+			AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Gun!!!!"));
+			Stat->SetCurrentStat(ECharacterStatus::GunMode);
 			GunWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
 			SwordWeapon->SetSkeletalMesh(NULL);
 			AnimInstance->ChangeGunMode(true);
 		}
 		if (WeaponItemData->Type == EItemType::Weapon_Sword) {
+			AttackFuncPtr = &AABCharacterBase::SwordAttack;
+			AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Sword!!!!"));
+			Stat->SetCurrentStat(ECharacterStatus::SwordMode);
 			SwordWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
 			GunWeapon->SetSkeletalMesh(NULL);
 			AnimInstance->ChangeGunMode(false);
