@@ -88,6 +88,7 @@ AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializ
 
 	CurrentCharacterControlType = ECharacterControlType::Quater;
 	bCanAttack = true;
+	bCanGunAttack = true;
 }
 
 void AABCharacterPlayer::BeginPlay()
@@ -315,6 +316,7 @@ void AABCharacterPlayer::GunAttack()
 		PlayAttackAnim();
 	}
 
+	AttackHitCheck();
 	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds(),true);
 }
 
@@ -331,40 +333,54 @@ void AABCharacterPlayer::GunAttackFinished()
 
 void AABCharacterPlayer::AttackHitCheck()
 {
+	
 	//소유권을 가진 클라이언트에서 판정 check
-	if (IsLocallyControlled()) {
+	if (!IsLocallyControlled()) return;
 
-		AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
-		FHitResult OutHitResult;
+	FHitResult OutHitResult;
+	bool HitDetected;
+	FVector Start;
+	FVector Forward;
+	FVector End;
+
+	if (Stat->GetCurrentStat() == ECharacterStatus::SwordMode) {
 		FCollisionQueryParams Params(SCENE_QUERY_STAT(SwordAttack), false, this);
 
 		const float AttackRange = Stat->GetTotalStat().AttackRange;
 		const float AttackRadius = Stat->GetAttackRadius();
 		const float AttackDamage = Stat->GetTotalStat().Attack;
-		const FVector Forward = GetActorForwardVector();
-		const FVector Start = GetActorLocation() + Forward * GetCapsuleComponent()->GetScaledCapsuleRadius();
-		const FVector End = Start + GetActorForwardVector() * AttackRange;
+		Forward = GetActorForwardVector();
+		Start = GetActorLocation() + Forward * GetCapsuleComponent()->GetScaledCapsuleRadius();
+		End = Start + GetActorForwardVector() * AttackRange;
+		HitDetected = GetWorld()->SweepSingleByChannel(OutHitResult, Start, End, FQuat::Identity, CCHANNEL_ABACTION, FCollisionShape::MakeSphere(AttackRadius), Params);
+	}
+	else if (Stat->GetCurrentStat() == ECharacterStatus::GunMode) {
+		FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(GunAttack), false, this);
 
-		bool HitDetected = GetWorld()->SweepSingleByChannel(OutHitResult, Start, End, FQuat::Identity, CCHANNEL_ABACTION, FCollisionShape::MakeSphere(AttackRadius), Params);
+		Start = GunWeapon->GetSocketLocation("b_gun_muzzleflash"); // 캐릭터의 현재 위치
+		Forward = GunWeapon->GetForwardVector() * -1; // 캐릭터의 앞 방향 벡터
+		End = Start + (Forward * 1000.0f); // 앞 방향으로 1000 단위 거리
+		HitDetected = GetWorld()->LineTraceSingleByChannel(OutHitResult, Start, End, ECC_Visibility, TraceParams);
+		DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 2.0f, 0, 1.0f);
+	}
 
-		float HitCheckTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
-		if (!HasAuthority()) {
-			if (HitDetected) {
-				ServerRPCNotifyHit(OutHitResult, HitCheckTime);
-			}
-			else {
-				ServerRPCNotifyMiss(Start,End,Forward, HitCheckTime);
-			}
+	float HitCheckTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+	if (!HasAuthority()) {
+		if (HitDetected) {
+			ServerRPCNotifyHit(OutHitResult, HitCheckTime);
 		}
 		else {
-			FColor DebugColor = HitDetected ? FColor::Green : FColor::Red;
-
-			if (HitDetected) {
-				AttackHitConfirm(OutHitResult.GetActor());
-			}
+			ServerRPCNotifyMiss(Start,End,Forward, HitCheckTime);
 		}
-
 	}
+	else {
+		FColor DebugColor = HitDetected ? FColor::Green : FColor::Red;
+
+		if (HitDetected) {
+			AttackHitConfirm(OutHitResult.GetActor());
+		}
+	}
+
 
 	
 }
