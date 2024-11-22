@@ -23,6 +23,7 @@
 #include "Components/WidgetComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "Engine/AssetManager.h"
+#include "Item/WeaponTraceCheck.h"
 
 AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer.SetDefaultSubobjectClass<UABCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -304,7 +305,7 @@ void AABCharacterPlayer::SwordAttack()
 	}
 
 	//서버도 실행
-	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds(), false);
+	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds());
 }
 
 void AABCharacterPlayer::GunAttack()
@@ -316,8 +317,9 @@ void AABCharacterPlayer::GunAttack()
 		PlayAttackAnim();
 	}
 
+	//총은 Notify가 없으므로
 	AttackHitCheck();
-	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds(),true);
+	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds());
 }
 
 void AABCharacterPlayer::GunAttackFinished()
@@ -337,31 +339,18 @@ void AABCharacterPlayer::AttackHitCheck()
 	//소유권을 가진 클라이언트에서 판정 check
 	if (!IsLocallyControlled()) return;
 
+	
+	WeaponTraceCheck WTCheck;
 	FHitResult OutHitResult;
 	bool HitDetected;
-	FVector Start;
-	FVector Forward;
-	FVector End;
 
-	if (Stat->GetCurrentStat() == ECharacterStatus::SwordMode) {
-		FCollisionQueryParams Params(SCENE_QUERY_STAT(SwordAttack), false, this);
+	if (Stat->GetCurrentStat() == ECharacterStatus::SwordMode) { //칼
 
-		const float AttackRange = Stat->GetTotalStat().AttackRange;
-		const float AttackRadius = Stat->GetAttackRadius();
-		const float AttackDamage = Stat->GetTotalStat().Attack;
-		Forward = GetActorForwardVector();
-		Start = GetActorLocation() + Forward * GetCapsuleComponent()->GetScaledCapsuleRadius();
-		End = Start + GetActorForwardVector() * AttackRange;
-		HitDetected = GetWorld()->SweepSingleByChannel(OutHitResult, Start, End, FQuat::Identity, CCHANNEL_ABACTION, FCollisionShape::MakeSphere(AttackRadius), Params);
+		HitDetected = WTCheck.SwordTraceCheck(*GetWorld(),*this, OutHitResult);
 	}
-	else if (Stat->GetCurrentStat() == ECharacterStatus::GunMode) {
-		FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(GunAttack), false, this);
-
-		Start = GunWeapon->GetSocketLocation("b_gun_muzzleflash"); // 캐릭터의 현재 위치
-		Forward = GunWeapon->GetForwardVector() * -1; // 캐릭터의 앞 방향 벡터
-		End = Start + (Forward * 1000.0f); // 앞 방향으로 1000 단위 거리
-		HitDetected = GetWorld()->LineTraceSingleByChannel(OutHitResult, Start, End, ECC_Visibility, TraceParams);
-		DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 2.0f, 0, 1.0f);
+	else if (Stat->GetCurrentStat() == ECharacterStatus::GunMode) {//총
+		
+		HitDetected = WTCheck.GunTraceCheck(*GetWorld(),*this, OutHitResult);
 	}
 
 	float HitCheckTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
@@ -370,7 +359,7 @@ void AABCharacterPlayer::AttackHitCheck()
 			ServerRPCNotifyHit(OutHitResult, HitCheckTime);
 		}
 		else {
-			ServerRPCNotifyMiss(Start,End,Forward, HitCheckTime);
+			ServerRPCNotifyMiss(GetActorLocation(), GetActorLocation(), GetActorForwardVector(), HitCheckTime);
 		}
 	}
 	else {
@@ -386,7 +375,7 @@ void AABCharacterPlayer::AttackHitCheck()
 }
 void AABCharacterPlayer::AttackHitConfirm(AActor* HitActor)
 {
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
 
 	if (HasAuthority()) {
 		const float AttackDamage = Stat->GetTotalStat().Attack;
@@ -429,7 +418,7 @@ void AABCharacterPlayer::ServerRPCFinishAttack_Implementation()
 	}
 }
 
-bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime, bool noTime)
+bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
 {
 	if (LastAttackStartTime == 0.0f) {
 		return true;
@@ -438,24 +427,22 @@ bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime, bool no
 	return (AttackStartTime - LastAttackStartTime) > (AttackTime - 0.4f);
 }
 
-void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime, bool noTime)
+void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 {
 
-	if (!noTime) { //sword attack
+	if (Stat->GetCurrentStat() == ECharacterStatus::SwordMode) { //sword attack
 		bCanAttack = false;
 		OnRep_CanAttack();
-
 		AttackTimeDifference = GetWorld()->GetTimeSeconds() - AttackStartTime;
 		AttackTimeDifference = FMath::Clamp(AttackTimeDifference, 0.0f, AttackTime - 0.01f);
-
 		GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, std::max(0.f,AttackTime - AttackTimeDifference), false);
-
 		LastAttackStartTime = AttackStartTime;
 
 		PlayAttackAnim();
 	}
-	else { //gun attack
+	else if(Stat->GetCurrentStat() == ECharacterStatus::GunMode){ //gun attack
 		bCanGunAttack = false;
+
 		PlayAttackAnim();
 	}
 

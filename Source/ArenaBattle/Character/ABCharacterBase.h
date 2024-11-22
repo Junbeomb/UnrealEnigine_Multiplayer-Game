@@ -95,7 +95,7 @@ protected:
 	float DeadEventDelayTime = 5.0f;
 
 // Stat Section
-protected:
+public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Stat, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UABCharacterStatComponent> Stat;
 
@@ -126,6 +126,8 @@ public:
 	int32 GetLevel();
 	void SetLevel(int32 InNewLevel);
 	void ApplyStat(const FABCharacterStat& BaseStat, const FABCharacterStat& ModifierStat);
+
+	TObjectPtr<class USkeletalMeshComponent> GetGunWeapon() { return GunWeapon; }
 
 public:
 	void MeshLoadCompleted();

@@ -88,7 +88,7 @@ protected:
 	void DrawDebugAttackRange(const FColor& DrawColor, FVector TraceStart, FVector TraceEnd, FVector Forward);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerRPCAttack(float AttackStartTime,bool noTime);
+	void ServerRPCAttack(float AttackStartTime);
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRPCFinishAttack();
 

@@ -39,6 +39,7 @@ void UABAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	{
 		Velocity = Movement->Velocity;
 		GroundSpeed = Velocity.Size2D();
+		//UE_LOG(LogTemp, Warning, TEXT("%f"), GroundSpeed);
 		bIsIdle = GroundSpeed < MovingThreshould;
 		bIsFalling = Movement->IsFalling();
 		bIsJumping = bIsFalling & (Velocity.Z > JumpingThreshould);
