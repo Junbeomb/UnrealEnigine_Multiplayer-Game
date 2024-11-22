@@ -93,6 +93,12 @@ AABCharacterBase::AABCharacterBase(const FObjectInitializer& ObjectInitializer)
 		DeadMontage = DeadMontageRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> KnockeddownMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/ArenaBattle/Animation/Damaged/AM_Knockeddown.AM_Knockeddown'"));
+	if (KnockeddownMontageRef.Object)
+	{
+		KnockeddownMontage = KnockeddownMontageRef.Object;
+	}
+
 	// Stat Component 
 	Stat = CreateDefaultSubobject<UABCharacterStatComponent>(TEXT("Stat"));
 
@@ -142,12 +148,19 @@ void AABCharacterBase::SetCharacterControlData(const UABCharacterControlData* Ch
 	GetCharacterMovement()->RotationRate = CharacterControlData->RotationRate;
 }
 
-void AABCharacterBase::PlayAttackAnim()
+void AABCharacterBase::PlayGunAttackAnim()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	AnimInstance->StopAllMontages(0.0f);
-	AnimInstance->Montage_Play(MainAttackMontage);
+	AnimInstance->Montage_Play(GunFireMontage);
 }
+
+void AABCharacterBase::PlaySwordAttackAnim()
+{
+	ProcessComboCommand();
+}
+
+
 
 void AABCharacterBase::ProcessComboCommand()
 {
@@ -163,6 +176,7 @@ void AABCharacterBase::ProcessComboCommand()
 	}
 	else
 	{
+
 		HasNextComboCommand = true;
 	}
 }
@@ -217,8 +231,10 @@ void AABCharacterBase::SetComboCheckTimer()
 void AABCharacterBase::ComboCheck()
 {
 	ComboTimerHandle.Invalidate();
+
 	if (HasNextComboCommand)
 	{
+
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
 		CurrentCombo = FMath::Clamp(CurrentCombo + 1, 1, ComboActionData->MaxComboCount);
@@ -256,7 +272,6 @@ void AABCharacterBase::AttackHitCheck()
 	DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, AttackRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 5.0f);
 
 #endif
-
 }
 
 float AABCharacterBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -264,6 +279,11 @@ float AABCharacterBase::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
 	Stat->ApplyDamage(DamageAmount);
+
+	if (KnockeddownMontage && Stat->GetCurrentHp() > 0.1f) {
+		GetMesh()->GetAnimInstance()->StopAllMontages(0.3f);
+		GetMesh()->GetAnimInstance()->Montage_Play(KnockeddownMontage, 1.0f);
+	}
 
 	return DamageAmount;
 }
@@ -330,7 +350,8 @@ void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 
 		if (WeaponItemData->Type == EItemType::Weapon_Gun) {
 			AttackFuncPtr = &AABCharacterBase::GunAttack;
-			MainAttackMontage = GunFireMontage;
+			AttackAnimPtr = &AABCharacterBase::PlayGunAttackAnim;
+
 			Stat->SetCurrentStat(ECharacterStatus::GunMode);
 			GunWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
 			SwordWeapon->SetSkeletalMesh(NULL);
@@ -338,7 +359,8 @@ void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 		}
 		if (WeaponItemData->Type == EItemType::Weapon_Sword) {
 			AttackFuncPtr = &AABCharacterBase::SwordAttack;
-			MainAttackMontage = ComboActionMontage;
+			AttackAnimPtr = &AABCharacterBase::PlaySwordAttackAnim;
+
 			Stat->SetCurrentStat(ECharacterStatus::SwordMode);
 			SwordWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
 			GunWeapon->SetSkeletalMesh(NULL);

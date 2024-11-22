@@ -295,14 +295,7 @@ void AABCharacterPlayer::Attack()
 
 void AABCharacterPlayer::SwordAttack()
 {
-	if (!bCanAttack)return;
-
-	//ProcessComboCommand();
-	if (!HasAuthority()) { //일단 클라 본인 실행
-		bCanAttack = false;
-		GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, AttackTime, false);
-		PlayAttackAnim();
-	}
+	(this->*AttackAnimPtr)();
 
 	//서버도 실행
 	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds());
@@ -314,7 +307,7 @@ void AABCharacterPlayer::GunAttack()
 
 	if (!HasAuthority()) {
 		bCanGunAttack = false;
-		PlayAttackAnim();
+		(this->*AttackAnimPtr)();
 	}
 
 	//총은 Notify가 없으므로
@@ -344,7 +337,7 @@ void AABCharacterPlayer::AttackHitCheck()
 	FHitResult OutHitResult;
 	bool HitDetected;
 
-	if (Stat->GetCurrentStat() == ECharacterStatus::SwordMode) { //칼
+	if (Stat->GetCurrentStat() == ECharacterStatus::SwordMode) {//칼
 
 		HitDetected = WTCheck.SwordTraceCheck(*GetWorld(),*this, OutHitResult);
 	}
@@ -359,7 +352,7 @@ void AABCharacterPlayer::AttackHitCheck()
 			ServerRPCNotifyHit(OutHitResult, HitCheckTime);
 		}
 		else {
-			ServerRPCNotifyMiss(GetActorLocation(), GetActorLocation(), GetActorForwardVector(), HitCheckTime);
+			//ServerRPCNotifyMiss(GetActorLocation(), GetActorLocation(), GetActorForwardVector(), HitCheckTime);
 		}
 	}
 	else {
@@ -369,18 +362,17 @@ void AABCharacterPlayer::AttackHitCheck()
 			AttackHitConfirm(OutHitResult.GetActor());
 		}
 	}
-
-
-	
 }
 void AABCharacterPlayer::AttackHitConfirm(AActor* HitActor)
 {
 	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
-
 	if (HasAuthority()) {
 		const float AttackDamage = Stat->GetTotalStat().Attack;
 		FDamageEvent DamageEvent;
-		HitActor->TakeDamage(AttackDamage, DamageEvent, GetController(), this);
+		AABCharacterPlayer* HitCharacter = Cast<AABCharacterPlayer>(HitActor);
+		if (HitCharacter) {
+			HitCharacter->TakeDamage(AttackDamage, DamageEvent, GetController(), this);
+		}
 	}
 }
 void AABCharacterPlayer::DrawDebugAttackRange(const FColor& DrawColor, FVector TraceStart, FVector TraceEnd, FVector Forward)
@@ -430,21 +422,11 @@ bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
 void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 {
 
-	if (Stat->GetCurrentStat() == ECharacterStatus::SwordMode) { //sword attack
-		bCanAttack = false;
-		OnRep_CanAttack();
-		AttackTimeDifference = GetWorld()->GetTimeSeconds() - AttackStartTime;
-		AttackTimeDifference = FMath::Clamp(AttackTimeDifference, 0.0f, AttackTime - 0.01f);
-		GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, std::max(0.f,AttackTime - AttackTimeDifference), false);
-		LastAttackStartTime = AttackStartTime;
-
-		PlayAttackAnim();
-	}
-	else if(Stat->GetCurrentStat() == ECharacterStatus::GunMode){ //gun attack
+	if(Stat->GetCurrentStat() == ECharacterStatus::GunMode){ //gun attack
 		bCanGunAttack = false;
-
-		PlayAttackAnim();
 	}
+
+	(this->*AttackAnimPtr)();
 
 	//MulticastRPCAttack();
 	//나를 제외한 다른 클라에서도 실행.
@@ -455,21 +437,29 @@ void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 		AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController->GetPawn());
 		if (!OtherPlayer) continue;
 
-		OtherPlayer->ClientRPCPlayAnimation(this);
+		OtherPlayer->ClientRPCPlayAnimation(this); //다른 클라에게 나자신(this)를넘겨ㅈ줘서 지금 나와 동일한 애니메이션 실행.
 	}
 }
 
 void AABCharacterPlayer::ClientRPCPlayAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
 {
-	if (!CharacterToPlay) return;
+	if (!CharacterToPlay || !CharacterToPlay->AttackAnimPtr) return;
 
-	CharacterToPlay->PlayAttackAnim();
+	//함수포인터를 사용해야 하는데 포인터는 동기화 불가. 해결책 찾아야함.
+	//(CharacterToPlay->*AttackAnimPtr)();
+	//(임시)
+	if (CharacterToPlay->Stat->GetCurrentStat() == ECharacterStatus::SwordMode) {
+		CharacterToPlay->ProcessComboCommand();
+	}
+	else if (CharacterToPlay->Stat->GetCurrentStat() == ECharacterStatus::GunMode) {
+		CharacterToPlay->PlayGunAttackAnim();
+	}
 }
 void AABCharacterPlayer::ClientRPCStopAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
 {
 	if (!CharacterToPlay) return;
 
-	CharacterToPlay->StopAnimMontage();
+	bCanGunAttack = true;
 }
 
 
@@ -477,7 +467,7 @@ void AABCharacterPlayer::ClientRPCStopAnimation_Implementation(AABCharacterPlaye
 void AABCharacterPlayer::MulticastRPCAttack_Implementation()
 {
 	if (!IsLocallyControlled()) {
-		PlayAttackAnim();
+		//PlayAttackAnim();
 	}
 }
 

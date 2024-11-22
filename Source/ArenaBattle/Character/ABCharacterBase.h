@@ -47,42 +47,42 @@ protected:
 	UPROPERTY(EditAnywhere, Category = CharacterControl, Meta = (AllowPrivateAccess = "true"))
 	TMap<ECharacterControlType, class UABCharacterControlData*> CharacterControlManager;
 
-// Combo Action Section
+// Attack Section
 protected:
 	float AttackTime = 1.4667f;
+
+	void (AABCharacterBase::* AttackFuncPtr)();
 	virtual void SwordAttack() {};
 	virtual void GunAttack() {};
-	void (AABCharacterBase::* AttackFuncPtr)();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 	TObjectPtr<class UAnimMontage> ComboActionMontage;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 	TObjectPtr<class UAnimMontage> GunFireMontage;
 
-	UPROPERTY(BlueprintReadOnly, Category = Animation)
-	TObjectPtr<class UAnimMontage> MainAttackMontage;
-	void PlayAttackAnim();
+	void(AABCharacterBase::* AttackAnimPtr)();
+	void PlayGunAttackAnim();
+	void PlaySwordAttackAnim();
+		void ProcessComboCommand();
+		void ComboActionBegin();
+		void ComboActionEnd(class UAnimMontage* TargetMontage, bool IsProperlyEnded);
+		virtual void NotifyComboActionEnd();
+		void SetComboCheckTimer();
+		void ComboCheck();
+		int32 CurrentCombo = 0;
+		FTimerHandle ComboTimerHandle;
+		bool HasNextComboCommand = false;
+		UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = "true"))
+		TObjectPtr<class UABComboActionData> ComboActionData;
 
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UABComboActionData> ComboActionData;
-
-	void ProcessComboCommand();
-
-	void ComboActionBegin();
-	void ComboActionEnd(class UAnimMontage* TargetMontage, bool IsProperlyEnded);
-	virtual void NotifyComboActionEnd();
-	void SetComboCheckTimer();
-	void ComboCheck();
-
-	int32 CurrentCombo = 0;
-	FTimerHandle ComboTimerHandle;
-	bool HasNextComboCommand = false;
 
 // Attack Hit Section
 protected:
 	virtual void AttackHitCheck() override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	TObjectPtr<class UAnimMontage> KnockeddownMontage;
 
 // Dead Section
 protected:
