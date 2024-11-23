@@ -69,13 +69,13 @@ void AABCharacterNonPlayer::SetAIAttackDelegate(const FAICharacterAttackFinished
 	OnAttackFinished = InOnAttackFinished;
 }
 
-void AABCharacterNonPlayer::AttackByAI()
-{
-	ProcessComboCommand();
-}
-
-void AABCharacterNonPlayer::NotifyComboActionEnd()
-{
-	Super::NotifyComboActionEnd();
-	OnAttackFinished.ExecuteIfBound();
-}
+//void AABCharacterNonPlayer::AttackByAI()
+//{
+//	ProcessComboCommand();
+//}
+//
+//void AABCharacterNonPlayer::NotifyComboActionEnd()
+//{
+//	Super::NotifyComboActionEnd();
+//	OnAttackFinished.ExecuteIfBound();
+//}

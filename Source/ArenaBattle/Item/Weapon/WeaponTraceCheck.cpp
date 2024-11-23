@@ -14,8 +14,6 @@ WeaponTraceCheck::~WeaponTraceCheck()
 {
 }
 
-
-
 bool WeaponTraceCheck::SwordTraceCheck(const UWorld& World, AABCharacterPlayer& player, FHitResult& OutHit)
 {
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(SwordAttack), false, &player);

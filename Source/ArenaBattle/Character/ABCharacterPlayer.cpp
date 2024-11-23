@@ -14,7 +14,6 @@
 #include "ArenaBattle.h"
 #include "Components/CapsuleComponent.h"
 #include "Physics/ABCollision.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/DamageEvents.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/GameStateBase.h"
@@ -23,7 +22,8 @@
 #include "Components/WidgetComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "Engine/AssetManager.h"
-#include "Item/WeaponTraceCheck.h"
+#include "Item/Weapon/WeaponTraceCheck.h"
+#include "Item/Weapon/ABWeaponItemData.h"
 
 AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer.SetDefaultSubobjectClass<UABCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -288,30 +288,9 @@ void AABCharacterPlayer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 //공격!!
 void AABCharacterPlayer::Attack()
 {
-	if (AttackFuncPtr) {
-		(this->*AttackFuncPtr)();
-	}
-}
+	CurrentWeapon->Attack(&AABCharacterPlayer::AttackHitCheck,false);
+	CurrentWeapon->AttackAnim(GetMesh()->GetAnimInstance());
 
-void AABCharacterPlayer::SwordAttack()
-{
-	(this->*AttackAnimPtr)();
-
-	//서버도 실행
-	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds());
-}
-
-void AABCharacterPlayer::GunAttack()
-{
-	if (!bCanGunAttack) return;
-
-	if (!HasAuthority()) {
-		bCanGunAttack = false;
-		(this->*AttackAnimPtr)();
-	}
-
-	//총은 Notify가 없으므로
-	AttackHitCheck();
 	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds());
 }
 
@@ -426,7 +405,7 @@ void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 		bCanGunAttack = false;
 	}
 
-	(this->*AttackAnimPtr)();
+	this->CurrentWeapon->AttackAnim(GetMesh()->GetAnimInstance());
 
 	//MulticastRPCAttack();
 	//나를 제외한 다른 클라에서도 실행.
@@ -443,17 +422,12 @@ void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 
 void AABCharacterPlayer::ClientRPCPlayAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
 {
-	if (!CharacterToPlay || !CharacterToPlay->AttackAnimPtr) return;
+	if (!CharacterToPlay || !CharacterToPlay->CurrentWeapon) return;
 
 	//함수포인터를 사용해야 하는데 포인터는 동기화 불가. 해결책 찾아야함.
 	//(CharacterToPlay->*AttackAnimPtr)();
 	//(임시)
-	if (CharacterToPlay->Stat->GetCurrentStat() == ECharacterStatus::SwordMode) {
-		CharacterToPlay->ProcessComboCommand();
-	}
-	else if (CharacterToPlay->Stat->GetCurrentStat() == ECharacterStatus::GunMode) {
-		CharacterToPlay->PlayGunAttackAnim();
-	}
+	CharacterToPlay->CurrentWeapon->AttackAnim(GetMesh()->GetAnimInstance());
 }
 void AABCharacterPlayer::ClientRPCStopAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
 {

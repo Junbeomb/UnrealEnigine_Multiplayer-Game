@@ -10,9 +10,15 @@
 #include "Physics/ABCollision.h"
 #include "Engine/DamageEvents.h"
 #include "CharacterStat/ABCharacterStatComponent.h"
+
 #include "UI/ABWidgetComponent.h"
 #include "UI/ABHpBarWidget.h"
+
 #include "Item/ABItems.h"
+#include "Item/Weapon/ABWeaponItemData.h"
+#include "Item/Weapon/ABGunItemData.h"
+#include "Item/Weapon/ABSwordItemData.h"
+
 #include "ArenaBattle.h"
 #include "Animation/ABAnimInstance.h"
 
@@ -69,23 +75,7 @@ AABCharacterBase::AABCharacterBase(const FObjectInitializer& ObjectInitializer)
 		CharacterControlManager.Add(ECharacterControlType::Quater, QuaterDataRef.Object);
 	}
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> ComboActionMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/ArenaBattle/Animation/AM_ComboAttack.AM_ComboAttack'"));
-	if (ComboActionMontageRef.Object)
-	{
-		ComboActionMontage = ComboActionMontageRef.Object;
-	}
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> GunFireMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/ArenaBattle/Animation/RIfleAnim/AM_RifleFire.AM_RifleFire'"));
-	if (GunFireMontageRef.Object)
-	{
-		GunFireMontage = GunFireMontageRef.Object;
-	}
-
-	static ConstructorHelpers::FObjectFinder<UABComboActionData> ComboActionDataRef(TEXT("/Script/ArenaBattle.ABComboActionData'/Game/ArenaBattle/CharacterAction/ABA_ComboAttack.ABA_ComboAttack'"));
-	if (ComboActionDataRef.Object)
-	{
-		ComboActionData = ComboActionDataRef.Object;
-	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DeadMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/ArenaBattle/Animation/AM_Dead.AM_Dead'"));
 	if (DeadMontageRef.Object)
@@ -122,11 +112,8 @@ AABCharacterBase::AABCharacterBase(const FObjectInitializer& ObjectInitializer)
 	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &AABCharacterBase::ReadScroll)));
 
 	// Weapon Component
-	SwordWeapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SwordWeapon"));
-	SwordWeapon->SetupAttachment(GetMesh(), TEXT("hand_rSocket"));
+	SMWeapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SMWeapon"));
 
-	GunWeapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("GunWeapon"));
-	GunWeapon->SetupAttachment(GetMesh(), TEXT("hand_rSocket_Gun"));
 }
 
 void AABCharacterBase::PostInitializeComponents()
@@ -148,102 +135,6 @@ void AABCharacterBase::SetCharacterControlData(const UABCharacterControlData* Ch
 	GetCharacterMovement()->RotationRate = CharacterControlData->RotationRate;
 }
 
-void AABCharacterBase::PlayGunAttackAnim()
-{
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	AnimInstance->StopAllMontages(0.0f);
-	AnimInstance->Montage_Play(GunFireMontage);
-}
-
-void AABCharacterBase::PlaySwordAttackAnim()
-{
-	ProcessComboCommand();
-}
-
-
-
-void AABCharacterBase::ProcessComboCommand()
-{
-	if (CurrentCombo == 0)
-	{
-		ComboActionBegin();
-		return;
-	}
-
-	if (!ComboTimerHandle.IsValid())
-	{
-		HasNextComboCommand = false;
-	}
-	else
-	{
-
-		HasNextComboCommand = true;
-	}
-}
-
-void AABCharacterBase::ComboActionBegin()
-{
-	// Combo Status
-	CurrentCombo = 1;
-
-	// Movement Setting
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
-
-	// Animation Setting
-	const float AttackSpeedRate = Stat->GetTotalStat().AttackSpeed;
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	AnimInstance->Montage_Play(ComboActionMontage, AttackSpeedRate);
-
-	FOnMontageEnded EndDelegate;
-	EndDelegate.BindUObject(this, &AABCharacterBase::ComboActionEnd);
-	AnimInstance->Montage_SetEndDelegate(EndDelegate, ComboActionMontage);
-
-	ComboTimerHandle.Invalidate();
-	SetComboCheckTimer();
-}
-
-void AABCharacterBase::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
-{
-	ensure(CurrentCombo != 0);
-	CurrentCombo = 0;
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
-
-	NotifyComboActionEnd();
-}
-
-void AABCharacterBase::NotifyComboActionEnd()
-{
-}
-
-void AABCharacterBase::SetComboCheckTimer()
-{
-	int32 ComboIndex = CurrentCombo - 1;
-	ensure(ComboActionData->EffectiveFrameCount.IsValidIndex(ComboIndex));
-
-	const float AttackSpeedRate = Stat->GetTotalStat().AttackSpeed;
-	float ComboEffectiveTime = (ComboActionData->EffectiveFrameCount[ComboIndex] / ComboActionData->FrameRate) / AttackSpeedRate;
-	if (ComboEffectiveTime > 0.0f)
-	{
-		GetWorld()->GetTimerManager().SetTimer(ComboTimerHandle, this, &AABCharacterBase::ComboCheck, ComboEffectiveTime, false);
-	}
-}
-
-void AABCharacterBase::ComboCheck()
-{
-	ComboTimerHandle.Invalidate();
-
-	if (HasNextComboCommand)
-	{
-
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-
-		CurrentCombo = FMath::Clamp(CurrentCombo + 1, 1, ComboActionData->MaxComboCount);
-		FName NextSection = *FString::Printf(TEXT("%s%d"), *ComboActionData->MontageSectionNamePrefix, CurrentCombo);
-		AnimInstance->Montage_JumpToSection(NextSection, ComboActionMontage);
-		SetComboCheckTimer();
-		HasNextComboCommand = false;
-	}
-}
 
 void AABCharacterBase::AttackHitCheck()
 {
@@ -349,21 +240,20 @@ void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 		UABAnimInstance* AnimInstance = Cast<UABAnimInstance>(GetMesh()->GetAnimInstance());
 
 		if (WeaponItemData->Type == EItemType::Weapon_Gun) {
-			AttackFuncPtr = &AABCharacterBase::GunAttack;
-			AttackAnimPtr = &AABCharacterBase::PlayGunAttackAnim;
-
+			CurrentWeapon = NewObject<UABGunItemData>(this);
+			if (CurrentWeapon) CurrentWeapon->Init(this);
 			Stat->SetCurrentStat(ECharacterStatus::GunMode);
-			GunWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
-			SwordWeapon->SetSkeletalMesh(NULL);
+
+			SMWeapon->SetupAttachment(GetMesh(),FName(CurrentWeapon->GetSocketName()));
+			SMWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
 			AnimInstance->ChangeGunMode(true);
 		}
 		if (WeaponItemData->Type == EItemType::Weapon_Sword) {
-			AttackFuncPtr = &AABCharacterBase::SwordAttack;
-			AttackAnimPtr = &AABCharacterBase::PlaySwordAttackAnim;
-
+			CurrentWeapon = NewObject<UABSwordItemData>(this);
+			if (CurrentWeapon) CurrentWeapon->Init(this);
 			Stat->SetCurrentStat(ECharacterStatus::SwordMode);
-			SwordWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
-			GunWeapon->SetSkeletalMesh(NULL);
+			SMWeapon->SetupAttachment(GetMesh(), FName(CurrentWeapon->GetSocketName()));
+			SMWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
 			AnimInstance->ChangeGunMode(false);
 		}
 	}

@@ -79,8 +79,6 @@ protected:
 
 
 	void Attack();
-	void SwordAttack() override;
-	void GunAttack() override;
 	void GunAttackFinished();
 
 	virtual void AttackHitCheck() override;

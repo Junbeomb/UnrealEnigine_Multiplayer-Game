@@ -50,30 +50,7 @@ protected:
 // Attack Section
 protected:
 	float AttackTime = 1.4667f;
-
-	void (AABCharacterBase::* AttackFuncPtr)();
-	virtual void SwordAttack() {};
-	virtual void GunAttack() {};
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-	TObjectPtr<class UAnimMontage> ComboActionMontage;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-	TObjectPtr<class UAnimMontage> GunFireMontage;
-
-	void(AABCharacterBase::* AttackAnimPtr)();
-	void PlayGunAttackAnim();
-	void PlaySwordAttackAnim();
-		void ProcessComboCommand();
-		void ComboActionBegin();
-		void ComboActionEnd(class UAnimMontage* TargetMontage, bool IsProperlyEnded);
-		virtual void NotifyComboActionEnd();
-		void SetComboCheckTimer();
-		void ComboCheck();
-		int32 CurrentCombo = 0;
-		FTimerHandle ComboTimerHandle;
-		bool HasNextComboCommand = false;
-		UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = "true"))
-		TObjectPtr<class UABComboActionData> ComboActionData;
 
 
 // Attack Hit Section
@@ -109,9 +86,9 @@ protected:
 // Item Section
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Equipment, Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class USkeletalMeshComponent> SwordWeapon;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Equipment, Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class USkeletalMeshComponent> GunWeapon;
+	TObjectPtr<class USkeletalMeshComponent> SMWeapon;
+
+	TObjectPtr<class UABWeaponItemData> CurrentWeapon;
 
 	UPROPERTY()
 	TArray<FTakeItemDelegateWrapper> TakeItemActions;
@@ -127,7 +104,7 @@ public:
 	void SetLevel(int32 InNewLevel);
 	void ApplyStat(const FABCharacterStat& BaseStat, const FABCharacterStat& ModifierStat);
 
-	TObjectPtr<class USkeletalMeshComponent> GetGunWeapon() { return GunWeapon; }
+	TObjectPtr<class USkeletalMeshComponent> GetGunWeapon() { return SMWeapon; }
 
 public:
 	void MeshLoadCompleted();

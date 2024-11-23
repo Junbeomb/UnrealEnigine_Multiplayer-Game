@@ -1,4 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -10,12 +9,35 @@
 /**
  * 
  */
+class AABCharacterBase;
+class AABCharacterPlayer;
 UCLASS()
 class ARENABATTLE_API UABWeaponItemData : public UABItemData
 {
 	GENERATED_BODY()
-	
+
+
+protected:
+	UPROPERTY(EditAnywhere, Category = Animation)
+	TObjectPtr<class UAnimMontage> AttackMontage;
+
+	AABCharacterBase* player;
 public:
+
+	//»ý¼ºÀÚ
+	UABWeaponItemData() = default;
+	void Init(AABCharacterBase* p)
+	{
+		bCanAttack = true;
+		player = p;
+	}
+
+	UPROPERTY()
+	uint8 bCanAttack;
+
+	virtual void Attack(void(AABCharacterPlayer::* AttackHitCheck)(), bool Authority) {};
+	virtual void AttackAnim(UAnimInstance* AnimInstance) {};
+	virtual FName GetSocketName() { return FName(FString("")); };
 
 	FPrimaryAssetId GetPrimaryAssetId() const override
 	{
@@ -30,4 +52,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = Stat)
 	FABCharacterStat ModifierStat;
+
+
 };
