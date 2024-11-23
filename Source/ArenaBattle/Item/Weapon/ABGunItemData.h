@@ -16,9 +16,10 @@ class ARENABATTLE_API UABGunItemData : public UABWeaponItemData
 
 protected:
 
-	void Attack(void(AABCharacterPlayer::*AttackHitCheck)(), bool Authority) override;
+	bool Attack(bool Authority) override;
+	void AttackFinished() override;
 	void AttackAnim(UAnimInstance* AnimInstance) override;
-	FName GetSocketName() override;
+	FString GetSocketName() override;
 
 public:
 	UABGunItemData();

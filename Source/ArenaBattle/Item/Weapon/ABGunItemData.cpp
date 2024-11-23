@@ -3,6 +3,7 @@
 
 #include "ABGunItemData.h"
 #include "Character/ABCharacterPlayer.h"
+#include "GameFramework/GameStateBase.h"
 
 UABGunItemData::UABGunItemData()
 {
@@ -17,16 +18,22 @@ UABGunItemData::UABGunItemData()
 
 
 
-void UABGunItemData::Attack(void(AABCharacterPlayer::*AttackHitCheck)(), bool Authority)
+bool UABGunItemData::Attack(bool Authority)
 {
-	if (!bCanAttack) return;
+	if (!player || !player->bCanAttack) return false;
 
 	if (!Authority) {
-		bCanAttack = false;
+		player->bCanAttack = false;
+		AttackStartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 	}
 
-	//총은 Notify가 없으므로
-	if(AttackHitCheck) (Cast<AABCharacterPlayer>(player)->*AttackHitCheck)();
+	return true;
+}
+
+void UABGunItemData::AttackFinished()
+{
+	player->bCanAttack = true;
+	player->GetMesh()->GetAnimInstance()->StopAllMontages(0.0f);
 }
 
 void UABGunItemData::AttackAnim(UAnimInstance* AnimInstance)
@@ -35,7 +42,7 @@ void UABGunItemData::AttackAnim(UAnimInstance* AnimInstance)
 	AnimInstance->Montage_Play(AttackMontage);
 }
 
-FName UABGunItemData::GetSocketName()
+FString UABGunItemData::GetSocketName()
 {
-	return FName(FString("hand_rSocket_Gun"));
+	return "hand_rSocket_Gun";
 }

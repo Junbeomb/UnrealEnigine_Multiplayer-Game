@@ -24,6 +24,7 @@
 #include "Engine/AssetManager.h"
 #include "Item/Weapon/WeaponTraceCheck.h"
 #include "Item/Weapon/ABWeaponItemData.h"
+#include <thread>
 
 AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer.SetDefaultSubobjectClass<UABCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -89,7 +90,6 @@ AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializ
 
 	CurrentCharacterControlType = ECharacterControlType::Quater;
 	bCanAttack = true;
-	bCanGunAttack = true;
 }
 
 void AABCharacterPlayer::BeginPlay()
@@ -251,7 +251,7 @@ void AABCharacterPlayer::QuaterMove(const FInputActionValue& Value)
 {
 	//공격을 할 수 없는 경우에는 움직이지 못하게
 	if (!bCanAttack) {
-		return;
+		//return;
 	}
 
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -281,14 +281,16 @@ void AABCharacterPlayer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	//서버와 클라이언트간에 해당 변수 동기화.
 	//서버가 값을 바꾸면 클라이언트에도 적용. 반대는 적용 안됨.
 	DOREPLIFETIME(AABCharacterPlayer, bCanAttack);
-	DOREPLIFETIME(AABCharacterPlayer, bCanGunAttack);
 
 }
 
 //공격!!
 void AABCharacterPlayer::Attack()
 {
-	CurrentWeapon->Attack(&AABCharacterPlayer::AttackHitCheck,false);
+	if (!CurrentWeapon) return;
+
+	//[에러] 다른 클라 한명이라도 총을 가지고 있지 않으면. CurrentWeapon->Attack()함수를 호출하는 것만으로도 크래쉬가남.
+	if (!CurrentWeapon->Attack(false))return;
 	CurrentWeapon->AttackAnim(GetMesh()->GetAnimInstance());
 
 	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds());
@@ -296,18 +298,23 @@ void AABCharacterPlayer::Attack()
 
 void AABCharacterPlayer::GunAttackFinished()
 {
-	if (bCanGunAttack) return;
+	if (bCanAttack) return;
 
-	bCanGunAttack = true;
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	AnimInstance->StopAllMontages(0.0f);
+	float cTime = 0.28f - (GetWorld()->GetGameState()->GetServerWorldTimeSeconds() - CurrentWeapon->AttackStartTime);
+	cTime = std::max(KINDA_SMALL_NUMBER, cTime);
 
-	ServerRPCFinishAttack();
+	GetWorld()->GetTimerManager().SetTimer(AttackTimerHandle, FTimerDelegate::CreateLambda([&]
+		{
+			CurrentWeapon->AttackFinished();
+			ServerRPCFinishAttack();
+		}
+	), cTime, false,-1.f);
 }
 
 void AABCharacterPlayer::AttackHitCheck()
 {
 	
+
 	//소유권을 가진 클라이언트에서 판정 check
 	if (!IsLocallyControlled()) return;
 
@@ -369,15 +376,15 @@ void AABCharacterPlayer::DrawDebugAttackRange(const FColor& DrawColor, FVector T
 //공격 취소
 bool AABCharacterPlayer::ServerRPCFinishAttack_Validate()
 {
-		return true;
+	return true;
 }
 
 //공격 취소
 void AABCharacterPlayer::ServerRPCFinishAttack_Implementation()
 {
-	bCanGunAttack = true;
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	AnimInstance->StopAllMontages(0.0f);
+	bCanAttack= true;
+	GetMesh()->GetAnimInstance()->StopAllMontages(0.0f);
+
 	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
 		if (!PlayerController || GetController() == PlayerController)  continue;
 		if (PlayerController->IsLocalController()) continue;
@@ -400,12 +407,11 @@ bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
 
 void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 {
-
 	if(Stat->GetCurrentStat() == ECharacterStatus::GunMode){ //gun attack
-		bCanGunAttack = false;
+		bCanAttack = false;
 	}
 
-	this->CurrentWeapon->AttackAnim(GetMesh()->GetAnimInstance());
+	CurrentWeapon->AttackAnim(GetMesh()->GetAnimInstance());
 
 	//MulticastRPCAttack();
 	//나를 제외한 다른 클라에서도 실행.
@@ -416,24 +422,23 @@ void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 		AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController->GetPawn());
 		if (!OtherPlayer) continue;
 
-		OtherPlayer->ClientRPCPlayAnimation(this); //다른 클라에게 나자신(this)를넘겨ㅈ줘서 지금 나와 동일한 애니메이션 실행.
+		OtherPlayer->ClientRPCPlayAnimation(this); //다른 클라에있는 나의 애니메이션을 실행
 	}
 }
 
+//다른 클라에 있는 나.
 void AABCharacterPlayer::ClientRPCPlayAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
 {
 	if (!CharacterToPlay || !CharacterToPlay->CurrentWeapon) return;
 
-	//함수포인터를 사용해야 하는데 포인터는 동기화 불가. 해결책 찾아야함.
-	//(CharacterToPlay->*AttackAnimPtr)();
-	//(임시)
-	CharacterToPlay->CurrentWeapon->AttackAnim(GetMesh()->GetAnimInstance());
+	CharacterToPlay->CurrentWeapon->AttackAnim(CharacterToPlay->GetMesh()->GetAnimInstance());
 }
 void AABCharacterPlayer::ClientRPCStopAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
 {
 	if (!CharacterToPlay) return;
 
-	bCanGunAttack = true;
+	CharacterToPlay->bCanAttack = true;
+	CharacterToPlay->GetMesh()->GetAnimInstance()->StopAllMontages(0.0f);
 }
 
 
@@ -505,7 +510,7 @@ void AABCharacterPlayer::SetupHUDWidget(UABHUDWidget* InHUDWidget)
 
 void AABCharacterPlayer::Teleport()
 {
-	AB_LOG(LogABTeleport, Log, TEXT("%s"), TEXT("Begin"));
+	//AB_LOG(LogABTeleport, Log, TEXT("%s"), TEXT("Begin"));
 
 	UABCharacterMovementComponent* ABMovement = Cast<UABCharacterMovementComponent>(GetCharacterMovement());
 	if (ABMovement) {

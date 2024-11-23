@@ -106,20 +106,18 @@ protected:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRPCNotifyMiss(FVector_NetQuantize TraceStart, FVector_NetQuantize TraceEnd, FVector_NetQuantizeNormal TraceDir, float HitCheckTime);
 
-	UPROPERTY(ReplicatedUsing=OnRep_CanAttack)
-	uint8 bCanAttack : 1;
-	UFUNCTION()
-	void OnRep_CanAttack();
 
-	UPROPERTY(Replicated)
-	uint8 bCanGunAttack : 1;
 
 
 	float LastAttackStartTime = 0.0f;
 	float AttackTimeDifference = 0.0f;
 	float AcceptCheckDistance = 300.f;
 	float AcceptMinCheckTime = 0.15f;
-
+public:
+	UPROPERTY(ReplicatedUsing = OnRep_CanAttack)
+	uint8 bCanAttack : 1;
+	UFUNCTION()
+	void OnRep_CanAttack();
 // UI Section
 protected:
 	virtual void SetupHUDWidget(class UABHUDWidget* InHUDWidget) override;

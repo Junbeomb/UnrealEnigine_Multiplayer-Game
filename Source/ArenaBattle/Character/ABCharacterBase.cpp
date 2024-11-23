@@ -113,7 +113,7 @@ AABCharacterBase::AABCharacterBase(const FObjectInitializer& ObjectInitializer)
 
 	// Weapon Component
 	SMWeapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SMWeapon"));
-
+	SMWeapon->SetupAttachment(GetMesh(),TEXT("hand_rSocket_Gun"));
 }
 
 void AABCharacterBase::PostInitializeComponents()
@@ -241,18 +241,19 @@ void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 
 		if (WeaponItemData->Type == EItemType::Weapon_Gun) {
 			CurrentWeapon = NewObject<UABGunItemData>(this);
-			if (CurrentWeapon) CurrentWeapon->Init(this);
+			if (CurrentWeapon) CurrentWeapon->Init(*this);
 			Stat->SetCurrentStat(ECharacterStatus::GunMode);
 
-			SMWeapon->SetupAttachment(GetMesh(),FName(CurrentWeapon->GetSocketName()));
+			SMWeapon->AttachToComponent(GetMesh(),FAttachmentTransformRules::SnapToTargetNotIncludingScale,FName(CurrentWeapon->GetSocketName()));
 			SMWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
 			AnimInstance->ChangeGunMode(true);
 		}
 		if (WeaponItemData->Type == EItemType::Weapon_Sword) {
 			CurrentWeapon = NewObject<UABSwordItemData>(this);
-			if (CurrentWeapon) CurrentWeapon->Init(this);
+			if (CurrentWeapon) CurrentWeapon->Init(*this);
 			Stat->SetCurrentStat(ECharacterStatus::SwordMode);
-			SMWeapon->SetupAttachment(GetMesh(), FName(CurrentWeapon->GetSocketName()));
+
+			SMWeapon->AttachToComponent(GetMesh(),FAttachmentTransformRules::SnapToTargetNotIncludingScale,FName(CurrentWeapon->GetSocketName()));
 			SMWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
 			AnimInstance->ChangeGunMode(false);
 		}

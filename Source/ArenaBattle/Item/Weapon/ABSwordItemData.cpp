@@ -23,7 +23,12 @@ UABSwordItemData::UABSwordItemData()
 
 }
 
-void UABSwordItemData::Attack(void(AABCharacterPlayer::*AttackHitCheck)(), bool Authority)
+bool UABSwordItemData::Attack(bool Authority)
+{
+	return true;
+}
+
+void UABSwordItemData::AttackFinished()
 {
 }
 
@@ -32,9 +37,9 @@ void UABSwordItemData::AttackAnim(UAnimInstance* AnimInstance)
 	ProcessComboCommand();
 }
 
-FName UABSwordItemData::GetSocketName()
+FString UABSwordItemData::GetSocketName()
 {
-	return FName(TEXT("hand_rSocket"));
+	return "hand_rSocket";
 }
 
 void UABSwordItemData::ProcessComboCommand()
@@ -51,7 +56,6 @@ void UABSwordItemData::ProcessComboCommand()
 	}
 	else
 	{
-
 		HasNextComboCommand = true;
 	}
 }
