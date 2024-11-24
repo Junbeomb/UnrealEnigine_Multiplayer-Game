@@ -18,13 +18,18 @@ UABGunItemData::UABGunItemData()
 
 
 
-bool UABGunItemData::Attack(bool Authority)
+bool UABGunItemData::Attack(bool Authority, bool IsLocally)
 {
 	if (!player || !player->bCanAttack) return false;
 
 	if (!Authority) {
 		player->bCanAttack = false;
 		AttackStartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+		AttackAnim(player->GetMesh()->GetAnimInstance());
+	}
+	else if (!IsLocally){
+		player->bCanAttack = false;
+		AttackAnim(player->GetMesh()->GetAnimInstance());
 	}
 
 	return true;

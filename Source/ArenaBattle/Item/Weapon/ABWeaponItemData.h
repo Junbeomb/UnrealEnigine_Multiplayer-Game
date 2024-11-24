@@ -33,7 +33,7 @@ public:
 
 	float AttackStartTime;
 
-	virtual bool Attack(bool Authority) { return true; };
+	virtual bool Attack(bool Authority, bool IsLocally) { return true; };
 	virtual void AttackFinished() {};
 	virtual void AttackAnim(UAnimInstance* AnimInstance) {};
 	virtual FString GetSocketName() { return ""; };

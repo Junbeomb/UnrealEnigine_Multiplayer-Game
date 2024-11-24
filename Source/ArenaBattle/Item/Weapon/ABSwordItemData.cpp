@@ -4,6 +4,7 @@
 #include "Character/ABCharacterMovementComponent.h"
 #include "CharacterStat/ABCharacterStatComponent.h"
 #include "Character/ABComboActionData.h"
+#include "GameFramework/GameStateBase.h"
 
 UABSwordItemData::UABSwordItemData()
 {
@@ -23,8 +24,17 @@ UABSwordItemData::UABSwordItemData()
 
 }
 
-bool UABSwordItemData::Attack(bool Authority)
+bool UABSwordItemData::Attack(bool Authority, bool IsLocally)
 {
+	if (!player) return false;
+
+	if (!Authority) {
+		AttackAnim(player->GetMesh()->GetAnimInstance());
+	}
+	else if(!IsLocally){
+		AttackAnim(player->GetMesh()->GetAnimInstance());
+	}
+
 	return true;
 }
 
@@ -66,9 +76,9 @@ void UABSwordItemData::ComboActionBegin()
 {
 	// Combo Status
 	CurrentCombo = 1;
-
+	UE_LOG(LogTemp, Warning, TEXT("ComboActionBegin"));
 	// Movement Setting
-	player->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+	//player->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 
 	// Animation Setting
 	const float AttackSpeedRate = player->Stat->GetTotalStat().AttackSpeed;
@@ -86,8 +96,9 @@ void UABSwordItemData::ComboActionBegin()
 void UABSwordItemData::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
 {
 	ensure(CurrentCombo != 0);
+	UE_LOG(LogTemp, Warning, TEXT("ComboActionEnd"));
 	CurrentCombo = 0;
-	player->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	//player->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 
 	NotifyComboActionEnd();
 }

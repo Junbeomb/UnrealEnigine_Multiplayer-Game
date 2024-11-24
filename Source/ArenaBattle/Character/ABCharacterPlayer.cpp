@@ -249,10 +249,6 @@ void AABCharacterPlayer::ShoulderLook(const FInputActionValue& Value)
 
 void AABCharacterPlayer::QuaterMove(const FInputActionValue& Value)
 {
-	//공격을 할 수 없는 경우에는 움직이지 못하게
-	if (!bCanAttack) {
-		//return;
-	}
 
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
@@ -290,8 +286,7 @@ void AABCharacterPlayer::Attack()
 	if (!CurrentWeapon) return;
 
 	//[에러] 다른 클라 한명이라도 총을 가지고 있지 않으면. CurrentWeapon->Attack()함수를 호출하는 것만으로도 크래쉬가남.
-	if (!CurrentWeapon->Attack(false))return;
-	CurrentWeapon->AttackAnim(GetMesh()->GetAnimInstance());
+	if (!CurrentWeapon->Attack(false,IsLocallyControlled()))return;
 
 	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds());
 }
@@ -407,13 +402,8 @@ bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
 
 void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 {
-	if(Stat->GetCurrentStat() == ECharacterStatus::GunMode){ //gun attack
-		bCanAttack = false;
-	}
+	CurrentWeapon->Attack(true, IsLocallyControlled());
 
-	CurrentWeapon->AttackAnim(GetMesh()->GetAnimInstance());
-
-	//MulticastRPCAttack();
 	//나를 제외한 다른 클라에서도 실행.
 	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
 		if (!PlayerController || GetController() == PlayerController)  continue;
