@@ -5,6 +5,6 @@
 
 void UABWeaponItemData::Init(AABCharacterBase& p)
 {
-	bCanAttack = true;
 	player = Cast<AABCharacterPlayer>(&p);
+	AttackWalkDecrease = 1.f;
 }

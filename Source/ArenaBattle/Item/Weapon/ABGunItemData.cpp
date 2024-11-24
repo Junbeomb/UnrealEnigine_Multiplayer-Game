@@ -20,7 +20,7 @@ UABGunItemData::UABGunItemData()
 
 bool UABGunItemData::Attack(bool Authority, bool IsLocally)
 {
-	if (!player || !player->bCanAttack) return false;
+	if (!player) return false;
 
 	if (!Authority) {
 		player->bCanAttack = false;
@@ -28,7 +28,6 @@ bool UABGunItemData::Attack(bool Authority, bool IsLocally)
 		AttackAnim(player->GetMesh()->GetAnimInstance());
 	}
 	else if (!IsLocally){
-		player->bCanAttack = false;
 		AttackAnim(player->GetMesh()->GetAnimInstance());
 	}
 

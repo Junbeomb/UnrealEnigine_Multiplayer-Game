@@ -227,6 +227,7 @@ void AABCharacterPlayer::ShoulderMove(const FInputActionValue& Value)
 	if (!bCanAttack) {
 		return;
 	}
+
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
 	const FRotator Rotation = Controller->GetControlRotation();
@@ -249,11 +250,11 @@ void AABCharacterPlayer::ShoulderLook(const FInputActionValue& Value)
 
 void AABCharacterPlayer::QuaterMove(const FInputActionValue& Value)
 {
-
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
 	float InputSizeSquared = MovementVector.SquaredLength();
 	float MovementVectorSize = 1.0f;
+	if (CurrentWeapon) MovementVectorSize *= CurrentWeapon->AttackWalkDecrease;
 	float MovementVectorSizeSquared = MovementVector.SquaredLength();
 	if (MovementVectorSizeSquared > 1.0f)
 	{
@@ -284,16 +285,18 @@ void AABCharacterPlayer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 void AABCharacterPlayer::Attack()
 {
 	if (!CurrentWeapon) return;
+	if (GetWorld()->GetGameState()->GetServerWorldTimeSeconds() - LastAttackStartTime < 0.15f) return;
 
 	//[에러] 다른 클라 한명이라도 총을 가지고 있지 않으면. CurrentWeapon->Attack()함수를 호출하는 것만으로도 크래쉬가남.
-	if (!CurrentWeapon->Attack(false,IsLocallyControlled()))return;
+	if (!CurrentWeapon->Attack(false,IsLocallyControlled())) return;
 
-	ServerRPCAttack(GetWorld()->GetGameState()->GetServerWorldTimeSeconds());
+	LastAttackStartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+	ServerRPCAttack(LastAttackStartTime);
 }
 
 void AABCharacterPlayer::GunAttackFinished()
 {
-	if (bCanAttack) return;
+	if (bCanAttack || Stat->GetCurrentStat() != ECharacterStatus::GunMode) return;
 
 	float cTime = 0.28f - (GetWorld()->GetGameState()->GetServerWorldTimeSeconds() - CurrentWeapon->AttackStartTime);
 	cTime = std::max(KINDA_SMALL_NUMBER, cTime);
@@ -308,8 +311,6 @@ void AABCharacterPlayer::GunAttackFinished()
 
 void AABCharacterPlayer::AttackHitCheck()
 {
-	
-
 	//소유권을 가진 클라이언트에서 판정 check
 	if (!IsLocallyControlled()) return;
 
@@ -319,7 +320,6 @@ void AABCharacterPlayer::AttackHitCheck()
 	bool HitDetected;
 
 	if (Stat->GetCurrentStat() == ECharacterStatus::SwordMode) {//칼
-
 		HitDetected = WTCheck.SwordTraceCheck(*GetWorld(),*this, OutHitResult);
 	}
 	else if (Stat->GetCurrentStat() == ECharacterStatus::GunMode) {//총
@@ -377,8 +377,8 @@ bool AABCharacterPlayer::ServerRPCFinishAttack_Validate()
 //공격 취소
 void AABCharacterPlayer::ServerRPCFinishAttack_Implementation()
 {
-	bCanAttack= true;
-	GetMesh()->GetAnimInstance()->StopAllMontages(0.0f);
+	bCanAttack = true;
+	GetMesh()->GetAnimInstance()->StopAllMontages(0.0f); 
 
 	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
 		if (!PlayerController || GetController() == PlayerController)  continue;

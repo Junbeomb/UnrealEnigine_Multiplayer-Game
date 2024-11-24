@@ -28,10 +28,9 @@ public:
 	UABWeaponItemData() = default;
 	void Init(AABCharacterBase& p);
 
-	UPROPERTY()
-	uint8 bCanAttack;
-
 	float AttackStartTime;
+
+	float AttackWalkDecrease;
 
 	virtual bool Attack(bool Authority, bool IsLocally) { return true; };
 	virtual void AttackFinished() {};
