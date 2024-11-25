@@ -30,7 +30,7 @@ public:
 
 	float AttackStartTime;
 
-	float AttackWalkDecrease;
+	float AttackDecreaseSpeed{ 1.f };
 
 	virtual bool Attack(bool Authority, bool IsLocally) { return true; };
 	virtual void AttackFinished() {};

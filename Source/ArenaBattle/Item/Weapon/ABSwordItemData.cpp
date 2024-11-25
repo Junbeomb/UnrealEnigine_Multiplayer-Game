@@ -55,9 +55,9 @@ FString UABSwordItemData::GetSocketName()
 
 void UABSwordItemData::ProcessComboCommand()
 {
-	AttackWalkDecrease = 0.08f;
 	if (CurrentCombo == 0)
 	{
+		AttackDecreaseSpeed = 0.3f;
 		ComboActionBegin();
 		return;
 	}
@@ -76,13 +76,9 @@ void UABSwordItemData::ProcessComboCommand()
 
 void UABSwordItemData::ComboActionBegin()
 {
-	// Combo Status
 	CurrentCombo = 1;
-	UE_LOG(LogTemp, Warning, TEXT("ComboActionBegin"));
-	// Movement Setting
 	//player->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
-
-	// Animation Setting
+	
 	const float AttackSpeedRate = player->Stat->GetTotalStat().AttackSpeed;
 	UAnimInstance* AnimInstance = player->GetMesh()->GetAnimInstance();
 	AnimInstance->Montage_Play(AttackMontage, AttackSpeedRate);
@@ -98,9 +94,9 @@ void UABSwordItemData::ComboActionBegin()
 void UABSwordItemData::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
 {
 	ensure(CurrentCombo != 0);
-	//UE_LOG(LogTemp, Warning, TEXT("ComboActionEnd"));
-	AttackWalkDecrease = 1.f;
+
 	CurrentCombo = 0;
+	
 	//player->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 
 	NotifyComboActionEnd();
@@ -127,10 +123,12 @@ void UABSwordItemData::ComboCheck()
 {
 	ComboTimerHandle.Invalidate();
 
+	AttackDecreaseSpeed = 1.f;
+
 	if (HasNextComboCommand)
 	{
-		UAnimInstance* AnimInstance = player->GetMesh()->GetAnimInstance();
 
+		UAnimInstance* AnimInstance = player->GetMesh()->GetAnimInstance();
 		CurrentCombo = FMath::Clamp(CurrentCombo + 1, 1, ComboActionData->MaxComboCount);
 		FName NextSection = *FString::Printf(TEXT("%s%d"), *ComboActionData->MontageSectionNamePrefix, CurrentCombo);
 		AnimInstance->Montage_JumpToSection(NextSection, AttackMontage);

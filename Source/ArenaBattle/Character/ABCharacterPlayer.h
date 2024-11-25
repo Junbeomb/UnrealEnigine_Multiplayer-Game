@@ -85,6 +85,8 @@ protected:
 
 	void GunAttackFinished();
 
+	virtual void AttackDodge() override;
+
 	virtual void AttackHitCheck() override;
 	void AttackHitConfirm(AActor* HitActor);
 	void DrawDebugAttackRange(const FColor& DrawColor, FVector TraceStart, FVector TraceEnd, FVector Forward);

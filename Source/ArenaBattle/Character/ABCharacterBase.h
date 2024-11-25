@@ -50,6 +50,7 @@ protected:
 // Attack Section
 protected:
 	float AttackTime = 1.4667f;
+	virtual void AttackDodge() override {};
 	
 
 
@@ -65,7 +66,7 @@ protected:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Stat, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UAnimMontage> DeadMontage;
-
+	 
 	virtual void SetDead();
 	void PlayDeadAnimation();
 

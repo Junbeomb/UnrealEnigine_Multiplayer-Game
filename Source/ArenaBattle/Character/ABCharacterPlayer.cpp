@@ -167,8 +167,8 @@ void AABCharacterPlayer::SetupPlayerInputComponent(class UInputComponent* Player
 	EnhancedInputComponent->BindAction(ShoulderMoveAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::ShoulderMove);
 	EnhancedInputComponent->BindAction(ShoulderLookAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::ShoulderLook);
 	EnhancedInputComponent->BindAction(QuaterMoveAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::QuaterMove);
-	EnhancedInputComponent->BindAction(TeleportAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Teleport);
 
+	EnhancedInputComponent->BindAction(TeleportAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Teleport);
 	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Attack);
 	EnhancedInputComponent->BindAction(AttackActionRelease, ETriggerEvent::Triggered, this, &AABCharacterPlayer::GunAttackFinished);
 }
@@ -254,22 +254,21 @@ void AABCharacterPlayer::ShoulderLook(const FInputActionValue& Value)
 void AABCharacterPlayer::QuaterMove(const FInputActionValue& Value)
 {
 	FVector2D MovementVector = Value.Get<FVector2D>();
-
 	float InputSizeSquared = MovementVector.SquaredLength();
 	float MovementVectorSize = 1.0f;
-	if (CurrentWeapon) MovementVectorSize *= CurrentWeapon->AttackWalkDecrease;
 	float MovementVectorSizeSquared = MovementVector.SquaredLength();
-	if (MovementVectorSizeSquared > 1.0f)
+	if (MovementVectorSizeSquared > 1.0f) //두개 이상 누르면
 	{
 		MovementVector.Normalize();
 		MovementVectorSizeSquared = 1.0f;
 	}
-	else
+	else //한 방향
 	{
 		MovementVectorSize = FMath::Sqrt(MovementVectorSizeSquared);
 	}
 
 	FVector MoveDirection = FVector(MovementVector.X, MovementVector.Y, 0.0f);
+	if (CurrentWeapon) MovementVectorSize *= CurrentWeapon->AttackDecreaseSpeed;
 	GetController()->SetControlRotation(FRotationMatrix::MakeFromX(MoveDirection).Rotator());
 	AddMovementInput(MoveDirection, MovementVectorSize);
 }
@@ -317,12 +316,19 @@ void AABCharacterPlayer::GunAttackFinished()
 	), cTime, false,-1.f);
 }
 
+void AABCharacterPlayer::AttackDodge()
+{
+	UABCharacterMovementComponent* ABMovement = Cast<UABCharacterMovementComponent>(GetCharacterMovement());
+	if (ABMovement) {
+		ABMovement->SetDodgeCommand();
+	}
+}
+
 void AABCharacterPlayer::AttackHitCheck()
 {
 	//소유권을 가진 클라이언트에서 판정 check
 	if (!IsLocallyControlled()) return;
 
-	
 	WeaponTraceCheck WTCheck;
 	FHitResult OutHitResult;
 	bool HitDetected{};
@@ -334,7 +340,6 @@ void AABCharacterPlayer::AttackHitCheck()
 	}
 	else if (Stat->GetCurrentStat() == ECharacterStatus::GunMode) {//총
 		HitDetected = WTCheck.GunTraceCheck(*GetWorld(),*this, OutHitResult, Start, End);
-
 	}
 
 	float HitCheckTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
@@ -360,7 +365,7 @@ void AABCharacterPlayer::AttackHitConfirm(AActor* HitActor)
 {
 	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
 	if (HasAuthority()) {
-		DrawDebugSphere(GetWorld(), HitActor->GetTargetLocation(), 50.f, 12, FColor::Yellow, false, 2.0f);
+		//DrawDebugSphere(GetWorld(), HitActor->GetTargetLocation(), 50.f, 12, FColor::Yellow, false, 2.0f);
 		const float AttackDamage = Stat->GetTotalStat().Attack;
 		FDamageEvent DamageEvent;
 		AABCharacterPlayer* HitCharacter = Cast<AABCharacterPlayer>(HitActor);
@@ -512,8 +517,6 @@ void AABCharacterPlayer::SetupHUDWidget(UABHUDWidget* InHUDWidget)
 
 void AABCharacterPlayer::Teleport()
 {
-	//AB_LOG(LogABTeleport, Log, TEXT("%s"), TEXT("Begin"));
-
 	UABCharacterMovementComponent* ABMovement = Cast<UABCharacterMovementComponent>(GetCharacterMovement());
 	if (ABMovement) {
 		ABMovement->SetTeleportCommand();
