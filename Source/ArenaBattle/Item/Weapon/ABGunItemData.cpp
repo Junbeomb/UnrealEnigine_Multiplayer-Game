@@ -4,6 +4,7 @@
 #include "ABGunItemData.h"
 #include "Character/ABCharacterPlayer.h"
 #include "GameFramework/GameStateBase.h"
+#include "DrawDebugHelpers.h"
 
 UABGunItemData::UABGunItemData()
 {
@@ -44,9 +45,33 @@ void UABGunItemData::AttackAnim(UAnimInstance* AnimInstance)
 {
 	AnimInstance->StopAllMontages(0.0f);
 	AnimInstance->Montage_Play(AttackMontage);
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &UABGunItemData::AttackAnimEnd);
+	player->GetMesh()->GetAnimInstance()->Montage_SetEndDelegate(EndDelegate,AttackMontage);
+
+}
+
+void UABGunItemData::AttackAnimEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
+{
+	if (player->IsAttackClick) {
+		player->bCanAttack = true;
+		player->Attack();
+	}
 }
 
 FString UABGunItemData::GetSocketName()
 {
 	return "hand_rSocket_Gun";
+}
+
+void UABGunItemData::AttackDrawDebug(const FVector HitLocation, const FVector ActorBoxCenter, const FVector Start, const FVector End)
+{
+	DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 2.f, 0, 2.5f);
+	//DrawDebugSphere(GetWorld(), HitLocation, 50.f, 12, FColor::Green, false, 2.0f);
+}
+
+void UABGunItemData::AttackDrawDebug(const FVector Start, const FVector End, const FVector Forward)
+{
+	DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 2.f, 0, 2.f);
 }

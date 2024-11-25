@@ -2,29 +2,31 @@
 
 
 #include "Character/ABCharacterPlayer.h"
+#include "ABCharacterControlData.h"
+#include "ABCharacterMovementComponent.h"
+#include "CharacterStat/ABCharacterStatComponent.h"
+
 #include "Camera/CameraComponent.h"
-#include "GameFramework/SpringArmComponent.h"
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "ABCharacterControlData.h"
 #include "UI/ABHUDWidget.h"
-#include "CharacterStat/ABCharacterStatComponent.h"
 #include "Interface/ABGameInterface.h"
 #include "ArenaBattle.h"
 #include "Components/CapsuleComponent.h"
 #include "Physics/ABCollision.h"
-#include "Engine/DamageEvents.h"
-#include "Net/UnrealNetwork.h"
-#include "GameFramework/GameStateBase.h"
+
 #include "EngineUtils.h"
-#include "ABCharacterMovementComponent.h"
-#include "Components/WidgetComponent.h"
-#include "GameFramework/PlayerState.h"
+#include "Engine/DamageEvents.h"
 #include "Engine/AssetManager.h"
+
+#include "Net/UnrealNetwork.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerState.h"
+#include "Components/WidgetComponent.h"
 #include "Item/Weapon/WeaponTraceCheck.h"
 #include "Item/Weapon/ABWeaponItemData.h"
-#include <thread>
 
 AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer.SetDefaultSubobjectClass<UABCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -165,9 +167,10 @@ void AABCharacterPlayer::SetupPlayerInputComponent(class UInputComponent* Player
 	EnhancedInputComponent->BindAction(ShoulderMoveAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::ShoulderMove);
 	EnhancedInputComponent->BindAction(ShoulderLookAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::ShoulderLook);
 	EnhancedInputComponent->BindAction(QuaterMoveAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::QuaterMove);
+	EnhancedInputComponent->BindAction(TeleportAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Teleport);
+
 	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Attack);
 	EnhancedInputComponent->BindAction(AttackActionRelease, ETriggerEvent::Triggered, this, &AABCharacterPlayer::GunAttackFinished);
-	EnhancedInputComponent->BindAction(TeleportAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Teleport);
 }
 
 void AABCharacterPlayer::ChangeCharacterControl()
@@ -284,18 +287,23 @@ void AABCharacterPlayer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 //공격!!
 void AABCharacterPlayer::Attack()
 {
+	IsAttackClick = true;
+
 	if (!CurrentWeapon) return;
 	if (GetWorld()->GetGameState()->GetServerWorldTimeSeconds() - LastAttackStartTime < 0.15f) return;
+	LastAttackStartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 
+	
 	//[에러] 다른 클라 한명이라도 총을 가지고 있지 않으면. CurrentWeapon->Attack()함수를 호출하는 것만으로도 크래쉬가남.
 	if (!CurrentWeapon->Attack(false,IsLocallyControlled())) return;
 
-	LastAttackStartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 	ServerRPCAttack(LastAttackStartTime);
 }
 
 void AABCharacterPlayer::GunAttackFinished()
 {
+	IsAttackClick = false;
+
 	if (bCanAttack || Stat->GetCurrentStat() != ECharacterStatus::GunMode) return;
 
 	float cTime = 0.28f - (GetWorld()->GetGameState()->GetServerWorldTimeSeconds() - CurrentWeapon->AttackStartTime);
@@ -317,30 +325,34 @@ void AABCharacterPlayer::AttackHitCheck()
 	
 	WeaponTraceCheck WTCheck;
 	FHitResult OutHitResult;
-	bool HitDetected;
+	bool HitDetected{};
+	FVector Start;
+	FVector End;
 
 	if (Stat->GetCurrentStat() == ECharacterStatus::SwordMode) {//칼
-		HitDetected = WTCheck.SwordTraceCheck(*GetWorld(),*this, OutHitResult);
+		HitDetected = WTCheck.SwordTraceCheck(*GetWorld(),*this, OutHitResult,Start, End);
 	}
 	else if (Stat->GetCurrentStat() == ECharacterStatus::GunMode) {//총
-		
-		HitDetected = WTCheck.GunTraceCheck(*GetWorld(),*this, OutHitResult);
+		HitDetected = WTCheck.GunTraceCheck(*GetWorld(),*this, OutHitResult, Start, End);
+
 	}
 
 	float HitCheckTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 	if (!HasAuthority()) {
 		if (HitDetected) {
-			ServerRPCNotifyHit(OutHitResult, HitCheckTime);
+			ServerRPCNotifyHit(OutHitResult,Start,End, HitCheckTime);
 		}
 		else {
-			//ServerRPCNotifyMiss(GetActorLocation(), GetActorLocation(), GetActorForwardVector(), HitCheckTime);
+			ServerRPCNotifyMiss(Start, End, GetActorForwardVector(), HitCheckTime);
 		}
 	}
-	else {
-		FColor DebugColor = HitDetected ? FColor::Green : FColor::Red;
-
+	else { //서버가 주인공
 		if (HitDetected) {
+			CurrentWeapon->AttackDrawDebug(OutHitResult.Location, OutHitResult.Location, Start, End);
 			AttackHitConfirm(OutHitResult.GetActor());
+		}
+		else {
+			CurrentWeapon->AttackDrawDebug(Start, End,Start);
 		}
 	}
 }
@@ -348,6 +360,7 @@ void AABCharacterPlayer::AttackHitConfirm(AActor* HitActor)
 {
 	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
 	if (HasAuthority()) {
+		DrawDebugSphere(GetWorld(), HitActor->GetTargetLocation(), 50.f, 12, FColor::Yellow, false, 2.0f);
 		const float AttackDamage = Stat->GetTotalStat().Attack;
 		FDamageEvent DamageEvent;
 		AABCharacterPlayer* HitCharacter = Cast<AABCharacterPlayer>(HitActor);
@@ -358,7 +371,6 @@ void AABCharacterPlayer::AttackHitConfirm(AActor* HitActor)
 }
 void AABCharacterPlayer::DrawDebugAttackRange(const FColor& DrawColor, FVector TraceStart, FVector TraceEnd, FVector Forward)
 {
-
 #if ENABLE_DRAW_DEBUG
 	const float AttackRange = Stat->GetTotalStat().AttackRange;
 	const float AttackRadius = Stat->GetAttackRadius();
@@ -440,12 +452,12 @@ void AABCharacterPlayer::MulticastRPCAttack_Implementation()
 	}
 }
 
-bool AABCharacterPlayer::ServerRPCNotifyHit_Validate(const FHitResult& HitResult, float HitCheckTime)
+bool AABCharacterPlayer::ServerRPCNotifyHit_Validate(const FHitResult& HitResult, FVector Start, FVector End, float HitCheckTime)
 {
 	return (HitCheckTime - LastAttackStartTime) > AcceptMinCheckTime;
 } 
 
-void AABCharacterPlayer::ServerRPCNotifyHit_Implementation(const FHitResult& HitResult, float HitCheckTime)
+void AABCharacterPlayer::ServerRPCNotifyHit_Implementation(const FHitResult& HitResult,FVector Start, FVector End, float HitCheckTime)
 {
 	AActor* HitActor = HitResult.GetActor();
 	if (::IsValid(HitActor)) {
@@ -459,10 +471,9 @@ void AABCharacterPlayer::ServerRPCNotifyHit_Implementation(const FHitResult& Hit
 			AB_LOG(LogABNetwork, Warning, TEXT("%s"), TEXT("HitTest Rejected"));
 		}
 #if ENABLE_DRAW_DEBUG
-		DrawDebugPoint(GetWorld(), ActorBoxCenter, 50.0f,FColor::Cyan, false, 5.0f);
-		DrawDebugPoint(GetWorld(), HitLocation, 50.0f,FColor::Magenta, false, 5.0f);
+		CurrentWeapon->AttackDrawDebug(HitLocation, ActorBoxCenter, Start, End);
 #endif
-		DrawDebugAttackRange(FColor::Green, HitResult.TraceStart, HitResult.TraceEnd, HitActor->GetActorForwardVector());
+		//DrawDebugAttackRange(FColor::Green, HitResult.TraceStart, HitResult.TraceEnd, HitActor->GetActorForwardVector());
 	}
 }
 
@@ -472,7 +483,8 @@ bool AABCharacterPlayer::ServerRPCNotifyMiss_Validate(FVector_NetQuantize TraceS
 }
 void AABCharacterPlayer::ServerRPCNotifyMiss_Implementation(FVector_NetQuantize TraceStart, FVector_NetQuantize TraceEnd, FVector_NetQuantizeNormal TraceDir, float HitCheckTime)
 {
-	DrawDebugAttackRange(FColor::Red, TraceStart, TraceEnd, TraceDir);
+	CurrentWeapon->AttackDrawDebug(TraceStart, TraceEnd, TraceDir);
+	//DrawDebugAttackRange(FColor::Red, TraceStart, TraceEnd, TraceDir);
 }
 
 //클라이언트에서만 자동으로 호출되기 때문에 서버에서는 명시적으로 호출해줘야 함.

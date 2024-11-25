@@ -14,6 +14,6 @@ public:
 	WeaponTraceCheck();
 	~WeaponTraceCheck();
 
-	bool SwordTraceCheck(const UWorld& World, class AABCharacterPlayer&, FHitResult& OutHit);
-	bool GunTraceCheck(const UWorld& World, class AABCharacterPlayer&, FHitResult& OutHit);
+	bool SwordTraceCheck(const UWorld& World, class AABCharacterPlayer&, FHitResult& OutHit, FVector& Start, FVector& End);
+	bool GunTraceCheck(const UWorld& World, class AABCharacterPlayer&, FHitResult& OutHit, FVector& Start, FVector& End);
 };

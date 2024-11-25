@@ -19,8 +19,11 @@ protected:
 	bool Attack(bool Authority, bool IsLocally) override;
 	void AttackFinished() override;
 	void AttackAnim(UAnimInstance* AnimInstance) override;
+	void AttackAnimEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded);
 	FString GetSocketName() override;
 
+	void AttackDrawDebug(const FVector HitLocation, const FVector ActorBoxCenter, const FVector Start, const FVector End) override;
+	void AttackDrawDebug(const FVector Start, const FVector End, const FVector Forward) override;
 public:
 	UABGunItemData();
 };

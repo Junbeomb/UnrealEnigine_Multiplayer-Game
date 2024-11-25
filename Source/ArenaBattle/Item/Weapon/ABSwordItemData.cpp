@@ -5,6 +5,7 @@
 #include "CharacterStat/ABCharacterStatComponent.h"
 #include "Character/ABComboActionData.h"
 #include "GameFramework/GameStateBase.h"
+#include "DrawDebugHelpers.h"
 
 UABSwordItemData::UABSwordItemData()
 {
@@ -136,4 +137,18 @@ void UABSwordItemData::ComboCheck()
 		SetComboCheckTimer();
 		HasNextComboCommand = false;
 	}
+}
+
+
+void UABSwordItemData::AttackDrawDebug(const FVector HitLocation, const FVector ActorBoxCenter, const FVector Start, const FVector End)
+{
+	DrawDebugSphere(GetWorld(), HitLocation, 50.0f, 10, FColor::Green, false, 2.0f);
+	//DrawDebugPoint(GetWorld(), HitLocation, 50.0f, FColor::Magenta, false, 5.0f);
+}
+
+void UABSwordItemData::AttackDrawDebug(const FVector Start, const FVector End, const FVector Forward)
+{
+	DrawDebugSphere(GetWorld(), Start, 50.0f, 10, FColor::Red, false, 2.0f);
+	//DrawDebugSphere(GetWorld(), HitLocation, 50.0f, 10, FColor::Cyan, false, 2.0f);
+	//DrawDebugPoint(GetWorld(), End, 50.0f, FColor::Magenta, false, 5.0f);
 }

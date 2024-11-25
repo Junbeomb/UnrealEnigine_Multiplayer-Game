@@ -27,6 +27,9 @@ protected:
 	void AttackAnim(UAnimInstance* AnimInstance) override;
 	FString GetSocketName() override;
 
+	void AttackDrawDebug(const FVector HitLocation, const FVector ActorBoxCenter, const FVector Start, const FVector End) override;
+	void AttackDrawDebug(const FVector Start, const FVector End, const FVector Forward) override;
+
 	//combo attack
 	void ProcessComboCommand();
 	void ComboActionBegin();

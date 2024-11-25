@@ -74,11 +74,15 @@ protected:
 	void QuaterMove(const FInputActionValue& Value);
 
 	ECharacterControlType CurrentCharacterControlType;
+
+public:
+	void Attack();
+	bool IsAttackClick = false;
+
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 
-	void Attack();
 	void GunAttackFinished();
 
 	virtual void AttackHitCheck() override;
@@ -100,22 +104,21 @@ protected:
 	void ClientRPCStopAnimation(AABCharacterPlayer* CharacterToPlay);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerRPCNotifyHit(const FHitResult& HitResult, float HitCheckTime);
+	void ServerRPCNotifyHit(const FHitResult& HitResult,FVector Start, FVector End, float HitCheckTime);
 
 	//FVector_NetQuantize : 데이터양 줄이기
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRPCNotifyMiss(FVector_NetQuantize TraceStart, FVector_NetQuantize TraceEnd, FVector_NetQuantizeNormal TraceDir, float HitCheckTime);
 
-
-
-
 	float LastAttackStartTime = 0.0f;
+
 	float AttackTimeDifference = 0.0f;
 	float AcceptCheckDistance = 300.f;
 	float AcceptMinCheckTime = 0.15f;
 public:
 	UPROPERTY(ReplicatedUsing = OnRep_CanAttack)
 	uint8 bCanAttack : 1;
+
 	UFUNCTION()
 	void OnRep_CanAttack();
 // UI Section

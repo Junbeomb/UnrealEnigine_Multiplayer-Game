@@ -37,6 +37,9 @@ public:
 	virtual void AttackAnim(UAnimInstance* AnimInstance) {};
 	virtual FString GetSocketName() { return ""; };
 
+	virtual void AttackDrawDebug(const FVector HitLocation, const FVector ActorBoxCenter, const FVector Start, const FVector End) {};
+	virtual void AttackDrawDebug(const FVector Start, const FVector End, const FVector Forward) {};
+
 	FPrimaryAssetId GetPrimaryAssetId() const override
 	{
 		return FPrimaryAssetId("ABItemData", GetFName());
