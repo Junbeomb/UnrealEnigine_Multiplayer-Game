@@ -22,8 +22,6 @@ UABSwordItemData::UABSwordItemData()
 	{
 		AttackMontage = ComboActionMontageRef.Object;
 	}
-
-
 }
 
 bool UABSwordItemData::CollisionCheck(const UWorld& World, FHitResult& OutHit, FVector& Start, FVector& End)

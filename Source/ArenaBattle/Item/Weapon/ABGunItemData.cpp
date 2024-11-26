@@ -6,6 +6,8 @@
 #include "GameFramework/GameStateBase.h"
 #include "DrawDebugHelpers.h"
 #include "BulletTracer.h"
+#include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystem.h"
 
 UABGunItemData::UABGunItemData()
 {
@@ -16,6 +18,12 @@ UABGunItemData::UABGunItemData()
 	{
 		AttackMontage = GunFireMontageRef.Object;
 	}
+
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleSystemAsset(TEXT("/Script/Engine.ParticleSystem'/Game/ArenaBattle/Item/Weapon/CS_MuzzleFlash.CS_MuzzleFlash'"));
+	if (ParticleSystemAsset.Succeeded())
+	{
+		MuzzleParticle = ParticleSystemAsset.Object;
+	}
 }
 
 
@@ -25,19 +33,24 @@ bool UABGunItemData::Attack(bool Authority, bool IsLocally)
 {
 	if (!player) return false;
 
-	if (!Authority) {
+	FVector MuzzleLoc = player->GetGunWeapon()->GetSocketLocation("b_gun_muzzleflash");
+	FRotator MuzzleRot = player->GetActorForwardVector().Rotation();
+
+	if (!Authority) { //클라이언트 (서버를 주인공으로 하는 클라도 실행)
 		player->bCanAttack = false;
 		AttackStartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 		AttackAnim(player->GetMesh()->GetAnimInstance());
 		GetWorld()->SpawnActor<ABulletTracer>(ABulletTracer::StaticClass(),
-			player->GetGunWeapon()->GetSocketLocation("b_gun_muzzleflash"),
-			player->GetActorForwardVector().Rotation());
+			MuzzleLoc,
+			MuzzleRot);
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleParticle, MuzzleLoc, MuzzleRot);
 	}
-	else if (!IsLocally){
+	else if (!IsLocally){ //서버에서 실행하는데, 서버에서 주인공인 아닌 캐릭터
 		AttackAnim(player->GetMesh()->GetAnimInstance());
 		GetWorld()->SpawnActor<ABulletTracer>(ABulletTracer::StaticClass(),
-			player->GetGunWeapon()->GetSocketLocation("b_gun_muzzleflash"),
-			player->GetActorForwardVector().Rotation());
+			MuzzleLoc,
+			MuzzleRot);
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleParticle, MuzzleLoc, MuzzleRot);
 	}
 
 

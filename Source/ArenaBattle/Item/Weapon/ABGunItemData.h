@@ -17,6 +17,8 @@ class ARENABATTLE_API UABGunItemData : public UABWeaponItemData
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class ABulletTracer> BulletTracer;
 
+	TObjectPtr<class UParticleSystem> MuzzleParticle;  // TObjectPtr À¯Áö
+
 protected:
 
 	bool Attack(bool Authority, bool IsLocally) override;

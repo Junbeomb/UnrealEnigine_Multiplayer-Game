@@ -293,7 +293,7 @@ void AABCharacterPlayer::Attack()
 
 	
 	//[에러] 다른 클라 한명이라도 총을 가지고 있지 않으면. CurrentWeapon->Attack()함수를 호출하는 것만으로도 크래쉬가남.
-	if (!CurrentWeapon->Attack(false,IsLocallyControlled())) return;
+	if (!CurrentWeapon || !CurrentWeapon->Attack(false,IsLocallyControlled())) return;
 
 	ServerRPCAttack(LastAttackStartTime);
 }
