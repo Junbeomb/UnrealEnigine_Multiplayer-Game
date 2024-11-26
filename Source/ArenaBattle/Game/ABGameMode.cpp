@@ -12,7 +12,7 @@
 
 AABGameMode::AABGameMode()
 {
-	static ConstructorHelpers::FClassFinder<APawn> DefaultPawnClassRef(TEXT("/Script/Engine.Blueprint'/Game/ArenaBattle/Blueprint/BP_ABCharacterPlayer.BP_ABCharacterPlayer_C'"));
+	static ConstructorHelpers::FClassFinder<APawn> DefaultPawnClassRef(TEXT("/Script/Engine.Blueprint'/Game/ArenaBattle/2_CPPToBP/Player/BP_ABCharacterPlayer.BP_ABCharacterPlayer_C'"));
 	if (DefaultPawnClassRef.Class)
 	{
 		DefaultPawnClass = DefaultPawnClassRef.Class;

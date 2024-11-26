@@ -25,7 +25,6 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "Components/WidgetComponent.h"
-#include "Item/Weapon/WeaponTraceCheck.h"
 #include "Item/Weapon/ABWeaponItemData.h"
 
 AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializer)
@@ -329,18 +328,12 @@ void AABCharacterPlayer::AttackHitCheck()
 	//소유권을 가진 클라이언트에서 판정 check
 	if (!IsLocallyControlled()) return;
 
-	WeaponTraceCheck WTCheck;
 	FHitResult OutHitResult;
 	bool HitDetected{};
 	FVector Start;
 	FVector End;
 
-	if (Stat->GetCurrentStat() == ECharacterStatus::SwordMode) {//칼
-		HitDetected = WTCheck.SwordTraceCheck(*GetWorld(),*this, OutHitResult,Start, End);
-	}
-	else if (Stat->GetCurrentStat() == ECharacterStatus::GunMode) {//총
-		HitDetected = WTCheck.GunTraceCheck(*GetWorld(),*this, OutHitResult, Start, End);
-	}
+	HitDetected = CurrentWeapon->CollisionCheck(*GetWorld(), OutHitResult, Start, End);
 
 	float HitCheckTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 	if (!HasAuthority()) {

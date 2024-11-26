@@ -6,6 +6,7 @@
 #include "Character/ABComboActionData.h"
 #include "GameFramework/GameStateBase.h"
 #include "DrawDebugHelpers.h"
+#include "Components/CapsuleComponent.h"
 
 UABSwordItemData::UABSwordItemData()
 {
@@ -23,6 +24,18 @@ UABSwordItemData::UABSwordItemData()
 	}
 
 
+}
+
+bool UABSwordItemData::CollisionCheck(const UWorld& World, FHitResult& OutHit, FVector& Start, FVector& End)
+{
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(SwordAttack), false, player);
+	const float AttackRange = player->Stat->GetTotalStat().AttackRange;
+	const float AttackRadius = player->Stat->GetAttackRadius();
+	const float AttackDamage = player->Stat->GetTotalStat().Attack;
+	FVector Forward = player->GetActorForwardVector();
+	Start = player->GetActorLocation() + Forward * player->GetCapsuleComponent()->GetScaledCapsuleRadius();
+	End = Start + player->GetActorForwardVector() * AttackRange;
+	return World.SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, ECC_GameTraceChannel1, FCollisionShape::MakeSphere(AttackRadius), Params);
 }
 
 bool UABSwordItemData::Attack(bool Authority, bool IsLocally)

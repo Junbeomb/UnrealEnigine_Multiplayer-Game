@@ -14,6 +14,9 @@ class ARENABATTLE_API UABGunItemData : public UABWeaponItemData
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class ABulletTracer> BulletTracer;
+
 protected:
 
 	bool Attack(bool Authority, bool IsLocally) override;
@@ -26,4 +29,6 @@ protected:
 	void AttackDrawDebug(const FVector Start, const FVector End, const FVector Forward) override;
 public:
 	UABGunItemData();
+
+	bool CollisionCheck(const UWorld& World, FHitResult& OutHit, FVector& Start, FVector& End) override;
 };

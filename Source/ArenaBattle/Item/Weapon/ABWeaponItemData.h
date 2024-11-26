@@ -37,6 +37,8 @@ public:
 	virtual void AttackAnim(UAnimInstance* AnimInstance) {};
 	virtual FString GetSocketName() { return ""; };
 
+	virtual bool CollisionCheck(const UWorld& World, FHitResult& OutHit, FVector& Start, FVector& End) { return false; };
+
 	virtual void AttackDrawDebug(const FVector HitLocation, const FVector ActorBoxCenter, const FVector Start, const FVector End) {};
 	virtual void AttackDrawDebug(const FVector Start, const FVector End, const FVector Forward) {};
 

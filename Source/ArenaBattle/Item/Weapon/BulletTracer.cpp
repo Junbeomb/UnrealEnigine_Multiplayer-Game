@@ -1,27 +1,38 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 
 #include "Item/Weapon/BulletTracer.h"
 
-// Sets default values
 ABulletTracer::ABulletTracer()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	StaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("/Script/Engine.StaticMesh'/Game/ArenaBattle/Item/Weapon/SM_BulletTracer.SM_BulletTracer'"));
+	if (MeshAsset.Succeeded())
+	{
+		StaticMesh->SetStaticMesh(MeshAsset.Object);
+	}
+
+	StaticMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FRotator Rotation = FRotator(90.0f, 0.0f, 0.0f);  // X축 (Pitch) 방향으로 90도 회전
+	StaticMesh->SetWorldRotation(Rotation);
+	StaticMesh->SetRelativeScale3D({ 2.f,2.f,-10.f });
 }
 
-// Called when the game starts or when spawned
 void ABulletTracer::BeginPlay()
 {
 	Super::BeginPlay();
+
+	FTimerHandle BulletTHandle;
+	GetWorld()->GetTimerManager().SetTimer(BulletTHandle, FTimerDelegate::CreateLambda([&]
+		{
+			Destroy();
+		}
+	), 0.3f, false, -1.f);
 	
 }
 
-// Called every frame
 void ABulletTracer::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
