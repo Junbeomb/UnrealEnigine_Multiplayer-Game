@@ -139,29 +139,29 @@ void AABCharacterPlayer::PossessedBy(AController* NewController)
 
 void AABCharacterPlayer::OnRep_Owner()
 {
-	AB_LOG(LogABNetwork, Log, TEXT("%s %s"),*GetName(), TEXT("Begin"));
+	//AB_LOG(LogABNetwork, Log, TEXT("%s %s"),*GetName(), TEXT("Begin"));
 
 	Super::OnRep_Owner();
 
 	//나를 누가 소유하는지?
 	AActor* OwnerActor = GetOwner();
 	if (OwnerActor) {
-		AB_LOG(LogABNetwork, Log, TEXT("Owner : %s"), *OwnerActor->GetName());
+		//AB_LOG(LogABNetwork, Log, TEXT("Owner : %s"), *OwnerActor->GetName());
 	}
 	else {
-		AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("No Owner"));
+		//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("No Owner"));
 	}
 
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
+	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
 }
 
 void AABCharacterPlayer::PostNetInit()
 {
-	AB_LOG(LogABNetwork, Log, TEXT("%s %s"), TEXT("Begin"),*GetName());
+	//AB_LOG(LogABNetwork, Log, TEXT("%s %s"), TEXT("Begin"),*GetName());
 
 	Super::PostNetInit();
 
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
+	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
 }
 
 void AABCharacterPlayer::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -290,8 +290,9 @@ void AABCharacterPlayer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 	//서버와 클라이언트간에 해당 변수 동기화.
 	//서버가 값을 바꾸면 클라이언트에도 적용. 반대는 적용 안됨.
+
 	DOREPLIFETIME(AABCharacterPlayer, bCanAttack);
-	DOREPLIFETIME(AABCharacterPlayer, CurrentWeapon);
+	//DOREPLIFETIME(AABCharacterPlayer, CurrentWeapon); //CurrentWeapon이 AActor 가 아니라서 네트워크 복제가 안됨.
 
 }
 
@@ -343,11 +344,41 @@ void AABCharacterPlayer::Attack()
 	LastAttackStartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 
 	
-	//[에러] 다른 클라 한명이라도 총을 가지고 있지 않으면. CurrentWeapon->Attack()함수를 호출하는 것만으로도 크래쉬가남.
-	//그리고 그냥 눌를 때 운안좋게 크래쉬 남. 왜?
+	//[에러] 가끔 공격을 하다보면 캐릭터가 움직이지 않는 현상 발생.
+	//-> Attack 뿐만 아니라 Roll 하면 크래쉬남. 근데 점프랑 방향 전환은 됨. 움직이지 않음.
 	if (!CurrentWeapon->Attack(false,IsLocallyControlled())) return;
 
 	ServerRPCAttack(LastAttackStartTime);
+}
+
+//HasAuthority() 에서 실행할 때만 발동.
+//클라에서 ServerRPCAttack을 호출하면 바로 _Implementation으로 이동.
+bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
+{
+	return true;
+}
+
+void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
+{
+	CurrentWeapon->Attack(true, IsLocallyControlled());
+
+	//나를 제외한 다른 클라에서도 실행.
+	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
+		if (!PlayerController || GetController() == PlayerController)  continue;
+		if (PlayerController->IsLocalController()) continue;
+		AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController->GetPawn());
+		if (!OtherPlayer) continue;
+
+		OtherPlayer->ClientRPCPlayAnimation(this); //다른 클라에있는 나의 애니메이션을 실행
+	}
+}
+
+//다른 클라에 있는 나.
+void AABCharacterPlayer::ClientRPCPlayAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
+{
+	if (!CharacterToPlay || !CharacterToPlay->CurrentWeapon) return;
+	//CharacterToPlay->CurrentWeapon->AttackAnim(CharacterToPlay->GetMesh()->GetAnimInstance());
+	CharacterToPlay->CurrentWeapon->Attack(false, false);
 }
 
 void AABCharacterPlayer::GunAttackFinished()
@@ -442,6 +473,7 @@ void AABCharacterPlayer::ServerRPCFinishAttack_Implementation()
 	bCanAttack = true;
 	GetMesh()->GetAnimInstance()->StopAllMontages(0.0f); 
 
+
 	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
 		if (!PlayerController || GetController() == PlayerController)  continue;
 		if (PlayerController->IsLocalController()) continue;
@@ -453,37 +485,9 @@ void AABCharacterPlayer::ServerRPCFinishAttack_Implementation()
 	}
 }
 
-bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
-{
-	if (LastAttackStartTime == 0.0f) {
-		return true;
-	}
 
-	return (AttackStartTime - LastAttackStartTime) > (AttackTime - 0.4f);
-}
 
-void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
-{
-	CurrentWeapon->Attack(true, IsLocallyControlled());
 
-	//나를 제외한 다른 클라에서도 실행.
-	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
-		if (!PlayerController || GetController() == PlayerController)  continue;
-		if (PlayerController->IsLocalController()) continue;
-		AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController->GetPawn());
-		if (!OtherPlayer) continue;
-
-		OtherPlayer->ClientRPCPlayAnimation(this); //다른 클라에있는 나의 애니메이션을 실행
-	}
-}
-
-//다른 클라에 있는 나.
-void AABCharacterPlayer::ClientRPCPlayAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
-{
-	if (!CharacterToPlay || !CharacterToPlay->CurrentWeapon) return;
-
-	CharacterToPlay->CurrentWeapon->AttackAnim(CharacterToPlay->GetMesh()->GetAnimInstance());
-}
 void AABCharacterPlayer::ClientRPCStopAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
 {
 	if (!CharacterToPlay) return;

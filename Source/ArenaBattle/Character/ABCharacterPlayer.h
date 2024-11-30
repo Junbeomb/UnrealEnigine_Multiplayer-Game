@@ -81,7 +81,7 @@ protected:
 public:
 	void Attack();
 	bool IsAttackClick = false;
-	UPROPERTY(Replicated)
+	//UPROPERTY(Replicated) 
 	TObjectPtr<class UABWeaponItemData> CurrentWeapon;
 
 protected:

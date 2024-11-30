@@ -76,7 +76,6 @@ AABCharacterBase::AABCharacterBase(const FObjectInitializer& ObjectInitializer)
 	}
 
 
-
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DeadMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/ArenaBattle/Animation/AM_Dead.AM_Dead'"));
 	if (DeadMontageRef.Object)
 	{
