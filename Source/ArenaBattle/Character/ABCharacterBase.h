@@ -84,6 +84,7 @@ protected:
 
 	virtual void SetupCharacterWidget(class UABUserWidget* InUserWidget) override;
 
+
 // Item Section
 protected:
 

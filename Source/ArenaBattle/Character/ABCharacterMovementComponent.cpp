@@ -15,15 +15,25 @@ UABCharacterMovementComponent::UABCharacterMovementComponent()
 
 	bPressedDodge = false;
 	bDidDodge = false;
-	bIsDodge = false;
 	DodgeOffset = 200.f;
 	DodgeCooltime = 0.2f;
 
+	bPressedRoll = false;
+	bDidRoll = false;
+	RollOffset = 200.f;
+	RollCooltime = 1.2f;
+
 	static ConstructorHelpers::FObjectFinder<UCurveFloat> CurveFloatRef(TEXT("/Script/Engine.CurveFloat'/Game/ArenaBattle/Animation/FC_Dodge.FC_Dodge'"));
-	if (nullptr != CurveFloatRef.Object)
-	{
+	if (nullptr != CurveFloatRef.Object) {
 		DodgeCurve = CurveFloatRef.Object;
 	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> RollMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/ArenaBattle/Animation/Move/AM_Roll.AM_Roll'"));
+	if (RollMontageRef.Object)
+	{
+		RollMontage = RollMontageRef.Object;
+	}
+	
 }
 
 void UABCharacterMovementComponent::SetTeleportCommand()
@@ -64,7 +74,7 @@ void UABCharacterMovementComponent::ABDodge()
 		MoveTL->RegisterComponent();
 		MoveTLCallback.BindUFunction(this, FName("SetMoveTLUpdate"));
 		MoveTLFinishedCallback.BindUFunction(this, FName("MoveTLFinished"));
-		UE_LOG(LogTemp, Warning, TEXT("ABDodge"));
+
 		if (DodgeCurve) {
 			MoveTL->AddInterpFloat(DodgeCurve, MoveTLCallback, FName("MoveValue"));
 			MoveTL->SetTimelineFinishedFunc(MoveTLFinishedCallback);
@@ -83,6 +93,29 @@ void UABCharacterMovementComponent::ABDodge()
 	}
 }
 
+void UABCharacterMovementComponent::SetRollCommand()
+{
+	bPressedRoll = true;
+}
+
+void UABCharacterMovementComponent::ABRoll()
+{
+		UE_LOG(LogTemp, Warning, TEXT("ABRoll"));
+	if (CharacterOwner && RollMontage) {
+		CharacterOwner->GetMesh()->GetAnimInstance()->StopAllMontages(0.0f);
+		CharacterOwner->GetMesh()->GetAnimInstance()->Montage_Play(RollMontage);
+		bDidRoll = true;
+		FTimerHandle Handle;
+		GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
+			{
+				bDidRoll = false;
+			}
+		), RollCooltime, false, -1.f);
+	}
+}
+
+
+
 void UABCharacterMovementComponent::MoveTLFinished()
 {
 }
@@ -92,6 +125,8 @@ void UABCharacterMovementComponent::SetMoveTLUpdate(float Value)
 	FVector cVec = UKismetMathLibrary::VLerp(DodgeStartLocation, DodgeTargetLocation, Value);
 	CharacterOwner->SetActorLocation(cVec);
 }
+
+
 
 FNetworkPredictionData_Client* UABCharacterMovementComponent::GetPredictionData_Client() const
 {
@@ -124,8 +159,16 @@ void UABCharacterMovementComponent::OnMovementUpdated(float DeltaSeconds, const 
 	if (bPressedDodge) {
 		bPressedDodge = false;
 	}
-
 	//닷지===============================
+
+	//구르기===============================
+	if (bPressedRoll && !bDidRoll) {
+		ABRoll();
+	}
+	if (bPressedRoll) {
+		bPressedRoll = false;
+	}
+	//구르기===============================
 }
 
 
@@ -140,14 +183,19 @@ void UABCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 	bPressedDodge = (Flags & FSavedMove_Character::FLAG_Custom_2) != 0;
 	bDidDodge = (Flags & FSavedMove_Character::FLAG_Custom_3) != 0;
 
+	bPressedRoll = (Flags & FSavedMove_Character::FLAG_Custom_4) != 0;
+	bDidRoll = (Flags & FSavedMove_Character::FLAG_Custom_5) != 0;
+
 	//현재 역할이 서버라면
 	if (CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_Authority) {
 		if (bPressedTeleport && !bDidTeleport) {
-			//AB_SUBLOG(LogABTeleport, Log, TEXT("%s"), TEXT("Teleport Begin"));
 			ABTeleport();
 		}
 		if (bPressedDodge && !bDidDodge) {
 			ABDodge();
+		}
+		if (bPressedRoll && !bDidRoll) {
+			ABRoll();
 		}
 	}
 
@@ -172,6 +220,9 @@ void FABSavedMove_Character::Clear()
 
 	bPressedDodge = false;
 	bDidDodge = false;
+
+	bPressedRoll = false;
+	bDidRoll = false;
 }
 
 //텔레포트 하기 전에 무브먼트 컴포넌트에 설정된 속성값을 캐릭터 움직임 데이터에 그대로 저장.
@@ -186,6 +237,9 @@ void FABSavedMove_Character::SetInitialPosition(ACharacter* Character)
 
 		bPressedDodge = ABMovement->bPressedDodge;
 		bDidDodge = ABMovement->bDidDodge;
+
+		bPressedRoll = ABMovement->bPressedRoll;
+		bDidRoll = ABMovement->bDidRoll;
 	}
 }
 
@@ -206,5 +260,13 @@ uint8 FABSavedMove_Character::GetCompressedFlags() const
 	if (bDidDodge) {
 		Result = FLAG_Custom_3;
 	}
+
+	if (bPressedRoll) {
+		Result = FLAG_Custom_4;
+	}
+	if (bDidRoll) {
+		Result = FLAG_Custom_5;
+	}
+
 	return Result;
 }

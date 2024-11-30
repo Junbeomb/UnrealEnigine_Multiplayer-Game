@@ -68,6 +68,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> TeleportAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> RollAction;
+
 	void ShoulderMove(const FInputActionValue& Value);
 	void ShoulderLook(const FInputActionValue& Value);
 
@@ -130,9 +133,10 @@ public:
 protected:
 	virtual void SetupHUDWidget(class UABHUDWidget* InHUDWidget) override;
 
-//Teleport Section
+//Move Section
 protected:
 	void Teleport();
+	void Roll();
 
 //PvP Section
 public:

@@ -20,6 +20,9 @@ public:
 
 	uint8 bPressedDodge : 1;
 	uint8 bDidDodge : 1;
+
+	uint8 bPressedRoll : 1;
+	uint8 bDidRoll : 1;
 };
 
 //클라이언트 데이터를 관리하는 클래스
@@ -67,8 +70,6 @@ public:
 	uint8 bPressedDodge : 1;
 	uint8 bDidDodge : 1;
 
-	bool bIsDodge;
-
 	FVector DodgeStartLocation;
 	FVector DodgeTargetLocation;
 
@@ -90,4 +91,25 @@ protected:
 	UFUNCTION()
 	void SetMoveTLUpdate(float Value);
 //닷지=================================================
+
+//구르기=================================================
+public:
+	void SetRollCommand();
+	uint8 bPressedRoll : 1;
+	uint8 bDidRoll : 1;
+
+	FVector RollStartLocation;
+	FVector RollTargetLocation;
+
+protected:
+	virtual void ABRoll();
+	UPROPERTY()
+	float RollOffset;
+	UPROPERTY()
+	float RollCooltime;
+
+	TObjectPtr<class UAnimMontage> RollMontage;
+
+//구르기=================================================
+
 };

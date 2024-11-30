@@ -93,6 +93,12 @@ AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializ
 		TeleportAction = InputActionTeleportRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> InputActionRollRef(TEXT("/Script/EnhancedInput.InputAction'/Game/ArenaBattle/Input/Actions/IA_Roll.IA_Roll'"));
+	if (nullptr != InputActionRollRef.Object)
+	{
+		RollAction = InputActionRollRef.Object;
+	}
+
 	CurrentCharacterControlType = ECharacterControlType::Quater;
 	bCanAttack = true;
 }
@@ -172,6 +178,8 @@ void AABCharacterPlayer::SetupPlayerInputComponent(class UInputComponent* Player
 	EnhancedInputComponent->BindAction(QuaterMoveAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::QuaterMove);
 
 	EnhancedInputComponent->BindAction(TeleportAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Teleport);
+	EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Roll);
+
 	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Attack);
 	EnhancedInputComponent->BindAction(AttackActionRelease, ETriggerEvent::Triggered, this, &AABCharacterPlayer::GunAttackFinished);
 }
@@ -556,6 +564,14 @@ void AABCharacterPlayer::Teleport()
 	UABCharacterMovementComponent* ABMovement = Cast<UABCharacterMovementComponent>(GetCharacterMovement());
 	if (ABMovement) {
 		ABMovement->SetTeleportCommand();
+	}
+}
+
+void AABCharacterPlayer::Roll()
+{
+	UABCharacterMovementComponent* ABMovement = Cast<UABCharacterMovementComponent>(GetCharacterMovement());
+	if (ABMovement) {
+		ABMovement->SetRollCommand();
 	}
 }
 
