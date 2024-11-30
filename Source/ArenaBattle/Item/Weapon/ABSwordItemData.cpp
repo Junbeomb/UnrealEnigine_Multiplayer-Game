@@ -24,6 +24,8 @@ UABSwordItemData::UABSwordItemData()
 	}
 }
 
+
+
 bool UABSwordItemData::CollisionCheck(const UWorld& World, FHitResult& OutHit, FVector& Start, FVector& End)
 {
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(SwordAttack), false, player);
@@ -46,7 +48,8 @@ bool UABSwordItemData::Attack(bool Authority, bool IsLocally)
 	else if(!IsLocally){ //서버일 때 && 자신이 서버가 아닐 경우
 		AttackAnim(player->GetMesh()->GetAnimInstance());
 	}
-	AttackDecreaseSpeed = 0.1f;
+	AttackDecreaseSpeed = 0.2f;
+
 	return true;
 }
 
@@ -108,8 +111,6 @@ void UABSwordItemData::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProper
 	CurrentCombo = 0;
 	AttackDecreaseSpeed = 1.f;
 
-	//player->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
-
 	NotifyComboActionEnd();
 }
 
@@ -124,8 +125,7 @@ void UABSwordItemData::SetComboCheckTimer()
 
 	const float AttackSpeedRate = player->Stat->GetTotalStat().AttackSpeed;
 	float ComboEffectiveTime = (ComboActionData->EffectiveFrameCount[ComboIndex] / ComboActionData->FrameRate) / AttackSpeedRate;
-	if (ComboEffectiveTime > 0.0f)
-	{
+	if (ComboEffectiveTime > 0.0f) {
 		GetWorld()->GetTimerManager().SetTimer(ComboTimerHandle, this, &UABSwordItemData::ComboCheck, ComboEffectiveTime, false);
 	}
 }
@@ -134,11 +134,7 @@ void UABSwordItemData::ComboCheck()
 {
 	ComboTimerHandle.Invalidate();
 
-	AttackDecreaseSpeed = 1.f;
-
-	if (HasNextComboCommand)
-	{
-
+	if (HasNextComboCommand) {
 		UAnimInstance* AnimInstance = player->GetMesh()->GetAnimInstance();
 		CurrentCombo = FMath::Clamp(CurrentCombo + 1, 1, ComboActionData->MaxComboCount);
 		FName NextSection = *FString::Printf(TEXT("%s%d"), *ComboActionData->MontageSectionNamePrefix, CurrentCombo);
@@ -146,6 +142,13 @@ void UABSwordItemData::ComboCheck()
 		SetComboCheckTimer();
 		HasNextComboCommand = false;
 	}
+}
+
+void UABSwordItemData::InitData()
+{
+	CurrentCombo = 0;
+	AttackDecreaseSpeed = 1.f;
+	HasNextComboCommand = false;
 }
 
 

@@ -109,7 +109,6 @@ protected:
 	float RollCooltime;
 
 	TObjectPtr<class UAnimMontage> RollMontage;
-
 //±¸¸£±â=================================================
 
 };

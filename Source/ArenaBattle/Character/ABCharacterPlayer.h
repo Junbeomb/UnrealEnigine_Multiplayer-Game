@@ -81,13 +81,14 @@ protected:
 public:
 	void Attack();
 	bool IsAttackClick = false;
+	UPROPERTY(Replicated)
+	TObjectPtr<class UABWeaponItemData> CurrentWeapon;
 
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	void EquipWeapon(class UABItemData* InItemData) override;
-	UPROPERTY(Replicated)
-	TObjectPtr<class UABWeaponItemData> CurrentWeapon;
+
 
 	void GunAttackFinished();
 

@@ -5,6 +5,8 @@
 #include "GameFramework/Character.h"
 #include "ArenaBattle.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "ABCharacterPlayer.h"
+#include "Item/Weapon/ABWeaponItemData.h"
 
 UABCharacterMovementComponent::UABCharacterMovementComponent()
 {
@@ -100,10 +102,12 @@ void UABCharacterMovementComponent::SetRollCommand()
 
 void UABCharacterMovementComponent::ABRoll()
 {
-		UE_LOG(LogTemp, Warning, TEXT("ABRoll"));
 	if (CharacterOwner && RollMontage) {
 		CharacterOwner->GetMesh()->GetAnimInstance()->StopAllMontages(0.0f);
 		CharacterOwner->GetMesh()->GetAnimInstance()->Montage_Play(RollMontage);
+		AABCharacterPlayer* tempC = Cast<AABCharacterPlayer>(CharacterOwner.Get());
+		if(tempC && tempC->CurrentWeapon) tempC->CurrentWeapon->InitData(); //무기 변수 초기화
+
 		bDidRoll = true;
 		FTimerHandle Handle;
 		GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]

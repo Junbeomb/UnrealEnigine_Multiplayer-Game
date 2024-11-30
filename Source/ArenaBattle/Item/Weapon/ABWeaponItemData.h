@@ -24,6 +24,9 @@ protected:
 	TObjectPtr<AABCharacterPlayer> player;
 public:
 
+	// 변수 초기화
+	virtual void InitData() {};
+
 	//생성자
 	UABWeaponItemData() = default;
 	void Init(AABCharacterBase& p);

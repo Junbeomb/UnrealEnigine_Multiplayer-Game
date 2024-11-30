@@ -41,6 +41,8 @@ protected:
 public:
 	UABSwordItemData();
 
+	void InitData() override;
+
 	bool CollisionCheck(const UWorld& World, FHitResult& OutHit, FVector& Start, FVector& End) override;
 	
 };
