@@ -206,6 +206,8 @@ void AABCharacterBase::SetupCharacterWidget(UABUserWidget* InUserWidget)
 	}
 }
 
+
+
 void AABCharacterBase::TakeItem(UABItemData* InItemData)
 {
 	if (InItemData)
@@ -229,40 +231,6 @@ void AABCharacterBase::DrinkPotion(UABItemData* InItemData)
 
 void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 {
-	UABWeaponItemData* WeaponItemData = Cast<UABWeaponItemData>(InItemData);
-
-	if (WeaponItemData)
-	{
-		if (WeaponItemData->WeaponMesh.IsPending())
-		{
-			WeaponItemData->WeaponMesh.LoadSynchronous();
-		}
-		UABAnimInstance* AnimInstance = Cast<UABAnimInstance>(GetMesh()->GetAnimInstance());
-
-		if (WeaponItemData->Type == EItemType::Weapon_Gun) {
-			CurrentWeapon = NewObject<UABGunItemData>(this);
-			if (CurrentWeapon) CurrentWeapon->Init(*this);
-			Stat->SetCurrentStat(ECharacterStatus::GunMode);
-
-			SMWeapon->AttachToComponent(GetMesh(),FAttachmentTransformRules::SnapToTargetNotIncludingScale,FName(CurrentWeapon->GetSocketName()));
-			SMWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
-			AnimInstance->ChangeGunMode(true);
-		}
-		if (WeaponItemData->Type == EItemType::Weapon_Sword) {
-			CurrentWeapon = NewObject<UABSwordItemData>(this);
-			if (CurrentWeapon) CurrentWeapon->Init(*this);
-			Stat->SetCurrentStat(ECharacterStatus::SwordMode);
-
-			SMWeapon->AttachToComponent(GetMesh(),FAttachmentTransformRules::SnapToTargetNotIncludingScale,FName(CurrentWeapon->GetSocketName()));
-			SMWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
-			AnimInstance->ChangeGunMode(false);
-		}
-	}
-	if (HasAuthority()) {
-		if (WeaponItemData) {
-			Stat->SetModifierStat(WeaponItemData->ModifierStat);
-		}
-	}
 
 }
 

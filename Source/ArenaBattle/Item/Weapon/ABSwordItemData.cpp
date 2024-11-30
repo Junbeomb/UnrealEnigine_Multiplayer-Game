@@ -46,7 +46,7 @@ bool UABSwordItemData::Attack(bool Authority, bool IsLocally)
 	else if(!IsLocally){ //서버일 때 && 자신이 서버가 아닐 경우
 		AttackAnim(player->GetMesh()->GetAnimInstance());
 	}
-
+	AttackDecreaseSpeed = 0.1f;
 	return true;
 }
 
@@ -68,7 +68,6 @@ void UABSwordItemData::ProcessComboCommand()
 {
 	if (CurrentCombo == 0)
 	{
-		AttackDecreaseSpeed = 0.3f;
 		ComboActionBegin();
 		return;
 	}
@@ -107,7 +106,8 @@ void UABSwordItemData::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProper
 	ensure(CurrentCombo != 0);
 
 	CurrentCombo = 0;
-	
+	AttackDecreaseSpeed = 1.f;
+
 	//player->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 
 	NotifyComboActionEnd();

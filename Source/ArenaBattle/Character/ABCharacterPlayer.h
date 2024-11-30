@@ -82,6 +82,9 @@ public:
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	void EquipWeapon(class UABItemData* InItemData) override;
+	UPROPERTY(Replicated)
+	TObjectPtr<class UABWeaponItemData> CurrentWeapon;
 
 	void GunAttackFinished();
 

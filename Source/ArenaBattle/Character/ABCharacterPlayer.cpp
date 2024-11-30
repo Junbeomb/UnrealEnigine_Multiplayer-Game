@@ -26,6 +26,10 @@
 #include "GameFramework/PlayerState.h"
 #include "Components/WidgetComponent.h"
 #include "Item/Weapon/ABWeaponItemData.h"
+#include "Item/Weapon/ABGunItemData.h"
+#include "Item/Weapon/ABSwordItemData.h"
+#include "Animation/ABAnimInstance.h"
+
 
 AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer.SetDefaultSubobjectClass<UABCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -95,7 +99,7 @@ AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializ
 
 void AABCharacterPlayer::BeginPlay()
 {
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
 	Super::BeginPlay();
 
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
@@ -279,6 +283,45 @@ void AABCharacterPlayer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	//서버와 클라이언트간에 해당 변수 동기화.
 	//서버가 값을 바꾸면 클라이언트에도 적용. 반대는 적용 안됨.
 	DOREPLIFETIME(AABCharacterPlayer, bCanAttack);
+	DOREPLIFETIME(AABCharacterPlayer, CurrentWeapon);
+
+}
+
+//무기 장착
+void AABCharacterPlayer::EquipWeapon(UABItemData* InItemData)
+{
+	UABWeaponItemData* WeaponItemData = Cast<UABWeaponItemData>(InItemData);
+
+	if (WeaponItemData)
+	{
+		if (WeaponItemData->WeaponMesh.IsPending())
+		{
+			WeaponItemData->WeaponMesh.LoadSynchronous();
+		}
+		UABAnimInstance* AnimInstance = Cast<UABAnimInstance>(GetMesh()->GetAnimInstance());
+
+		if (WeaponItemData->Type == EItemType::Weapon_Gun) {
+			CurrentWeapon = NewObject<UABGunItemData>(this);
+			Stat->SetCurrentStat(ECharacterStatus::GunMode);
+			AnimInstance->ChangeGunMode(true);
+		}
+		if (WeaponItemData->Type == EItemType::Weapon_Sword) {
+			CurrentWeapon = NewObject<UABSwordItemData>(this);
+			Stat->SetCurrentStat(ECharacterStatus::SwordMode);
+			AnimInstance->ChangeGunMode(false);
+		}
+
+		if (SMWeapon && CurrentWeapon) {
+			CurrentWeapon->Init(*this);
+			SMWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName(CurrentWeapon->GetSocketName()));
+			SMWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
+		}
+	}
+	if (HasAuthority()) {
+		if (WeaponItemData) {
+			Stat->SetModifierStat(WeaponItemData->ModifierStat);
+		}
+	}
 
 }
 
@@ -293,7 +336,8 @@ void AABCharacterPlayer::Attack()
 
 	
 	//[에러] 다른 클라 한명이라도 총을 가지고 있지 않으면. CurrentWeapon->Attack()함수를 호출하는 것만으로도 크래쉬가남.
-	if (!CurrentWeapon || !CurrentWeapon->Attack(false,IsLocallyControlled())) return;
+	//그리고 그냥 눌를 때 운안좋게 크래쉬 남. 왜?
+	if (!CurrentWeapon->Attack(false,IsLocallyControlled())) return;
 
 	ServerRPCAttack(LastAttackStartTime);
 }
@@ -418,7 +462,6 @@ void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
 		if (!PlayerController || GetController() == PlayerController)  continue;
 		if (PlayerController->IsLocalController()) continue;
-
 		AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController->GetPawn());
 		if (!OtherPlayer) continue;
 

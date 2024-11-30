@@ -35,8 +35,7 @@ void UABCharacterMovementComponent::ABTeleport()
 {
 	if (CharacterOwner) {
 		FVector TargetLocation = CharacterOwner->GetActorLocation() + CharacterOwner->GetActorForwardVector() * TeleportOffset;
-		//CharacterOwner->TeleportTo(TargetLocation, CharacterOwner->GetActorRotation(), false, true);
-		CharacterOwner->GetCharacterMovement()->AddImpulse(TargetLocation, true);
+		CharacterOwner->TeleportTo(TargetLocation, CharacterOwner->GetActorRotation(), false, true);
 		bDidTeleport = true;
 
 		FTimerHandle Handle;
@@ -90,7 +89,6 @@ void UABCharacterMovementComponent::MoveTLFinished()
 
 void UABCharacterMovementComponent::SetMoveTLUpdate(float Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("%f"), Value);
 	FVector cVec = UKismetMathLibrary::VLerp(DodgeStartLocation, DodgeTargetLocation, Value);
 	CharacterOwner->SetActorLocation(cVec);
 }
