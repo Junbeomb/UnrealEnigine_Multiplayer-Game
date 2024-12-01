@@ -22,7 +22,7 @@ class ARENABATTLE_API UABSwordItemData : public UABWeaponItemData
 
 protected:
 
-	bool Attack(bool Authority, bool IsLocally) override;
+	void Attack() override;
 	void AttackFinished() override;
 	void AttackAnim(UAnimInstance* AnimInstance) override;
 	FString GetSocketName() override;

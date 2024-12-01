@@ -348,7 +348,7 @@ void AABCharacterPlayer::Attack()
 	//-> Attack 뿐만 아니라 Roll 하면 크래쉬남. 근데 점프랑 방향 전환은 됨. 움직이지 않음.
 	// 모든 클라 서버 캐릭터에 동시 발생.
 	if (!HasAuthority()) {
-		if (!CurrentWeapon->Attack(HasAuthority(),IsLocallyControlled())) return;
+		CurrentWeapon->Attack();
 	}
 
 	ServerRPCAttack(LastAttackStartTime);
@@ -363,24 +363,27 @@ bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
 
 void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 {
-	CurrentWeapon->Attack(true, IsLocallyControlled());
+	CurrentWeapon->Attack();
 
 	//나를 제외한 다른 클라에서도 실행.
 	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld())) {
+		AB_LOG(LogABNetwork, Log, TEXT("%s"), *PlayerController->GetName());
 		if (!PlayerController || GetController() == PlayerController)  continue;
 		if (PlayerController->IsLocalController()) continue;
 		AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController->GetPawn());
 		if (!OtherPlayer) continue;
 
-		OtherPlayer->ClientRPCPlayAnimation(this); //다른 클라에있는 나의 애니메이션을 실행
+		OtherPlayer->ClientRPCAttackAnimation(this); //다른 클라에있는 나의 애니메이션을 실행
 	}
 }
 
 //다른 클라에 있는 나.
-void AABCharacterPlayer::ClientRPCPlayAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
+void AABCharacterPlayer::ClientRPCAttackAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
 {
-	if (!CharacterToPlay || !CharacterToPlay->CurrentWeapon) return;
-	CharacterToPlay->CurrentWeapon->Attack(false, false);
+	if (!CharacterToPlay) return;
+
+	if (CharacterToPlay->CurrentWeapon)
+		CharacterToPlay->CurrentWeapon->Attack();
 }
 
 void AABCharacterPlayer::GunAttackFinished()
@@ -439,6 +442,7 @@ void AABCharacterPlayer::AttackHitCheck()
 		}
 	}
 }
+
 void AABCharacterPlayer::AttackHitConfirm(AActor* HitActor)
 {
 	//AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
@@ -488,8 +492,6 @@ void AABCharacterPlayer::ServerRPCFinishAttack_Implementation()
 }
 
 
-
-
 void AABCharacterPlayer::ClientRPCStopAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
 {
 	if (!CharacterToPlay) return;
@@ -499,13 +501,7 @@ void AABCharacterPlayer::ClientRPCStopAnimation_Implementation(AABCharacterPlaye
 }
 
 
-//시전자 본인에게도 패킷을 보내므로 ClientRPC를 사용하는 것이 최적화에 좋음.
-void AABCharacterPlayer::MulticastRPCAttack_Implementation()
-{
-	if (!IsLocallyControlled()) {
-		//PlayAttackAnim();
-	}
-}
+
 
 bool AABCharacterPlayer::ServerRPCNotifyHit_Validate(const FHitResult& HitResult, FVector Start, FVector End, float HitCheckTime)
 {
@@ -576,7 +572,22 @@ void AABCharacterPlayer::Teleport()
 void AABCharacterPlayer::Roll()
 {
 	UABCharacterMovementComponent* ABMovement = Cast<UABCharacterMovementComponent>(GetCharacterMovement());
-	if (ABMovement) {
+	if (!ABMovement) return;
+
+	ABMovement->SetRollCommand();
+
+
+	//나를 제외한 다른 클라에서도 실행.
+	// 하지만 ServerRPC에서 실행시켜야함. 클라에서는 다른 클라를 알지 못함.
+	//MulticastRPCRoll();
+}
+
+//다른 클라에 있는 나.
+//시전자 본인에게도 패킷을 보내므로 ClientRPC를 사용하는 것이 최적화에 좋음.
+void AABCharacterPlayer::MulticastRPCRoll_Implementation()
+{
+	if (!IsLocallyControlled()) {
+		UABCharacterMovementComponent* ABMovement = Cast<UABCharacterMovementComponent>(GetCharacterMovement());
 		ABMovement->SetRollCommand();
 	}
 }

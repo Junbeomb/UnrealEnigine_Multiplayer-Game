@@ -26,10 +26,8 @@ UABGunItemData::UABGunItemData()
 	}
 }
 
-bool UABGunItemData::Attack(bool Authority, bool IsLocally)
+void UABGunItemData::Attack()
 {
-	if (!player) return false;
-
 	FVector MuzzleLoc = player->GetGunWeapon()->GetSocketLocation("b_gun_muzzleflash");
 	FRotator MuzzleRot = player->GetActorForwardVector().Rotation();
 
@@ -38,8 +36,6 @@ bool UABGunItemData::Attack(bool Authority, bool IsLocally)
 	AttackAnim(player->GetMesh()->GetAnimInstance());
 	GetWorld()->SpawnActor<ABulletTracer>(ABulletTracer::StaticClass(), MuzzleLoc, MuzzleRot);
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleParticle, MuzzleLoc, MuzzleRot);
-
-	return true;
 }
 
 void UABGunItemData::AttackFinished()

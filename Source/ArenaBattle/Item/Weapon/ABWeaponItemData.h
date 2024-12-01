@@ -35,7 +35,7 @@ public:
 
 	float AttackDecreaseSpeed{ 1.f };
 
-	virtual bool Attack(bool Authority, bool IsLocally) { return true; };
+	virtual void Attack() {};
 	virtual void AttackFinished() {};
 	virtual void AttackAnim(UAnimInstance* AnimInstance) {};
 	virtual FString GetSocketName() { return ""; };

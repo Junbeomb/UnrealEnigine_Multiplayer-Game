@@ -38,14 +38,10 @@ bool UABSwordItemData::CollisionCheck(const UWorld& World, FHitResult& OutHit, F
 	return World.SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, ECC_GameTraceChannel1, FCollisionShape::MakeSphere(AttackRadius), Params);
 }
 
-bool UABSwordItemData::Attack(bool Authority, bool IsLocally)
+void UABSwordItemData::Attack()
 {
-	if (!player) return false;
-
 	AttackAnim(player->GetMesh()->GetAnimInstance());
 	AttackDecreaseSpeed = 0.2f;
-
-	return true;
 }
 
 void UABSwordItemData::AttackFinished()

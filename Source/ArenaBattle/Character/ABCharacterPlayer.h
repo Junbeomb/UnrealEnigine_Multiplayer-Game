@@ -103,11 +103,10 @@ protected:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRPCFinishAttack();
 
-	UFUNCTION(NetMulticast, Unreliable)
-	void MulticastRPCAttack();
+
 
 	UFUNCTION(Client,Unreliable)
-	void ClientRPCPlayAnimation(AABCharacterPlayer* CharacterToPlay);
+	void ClientRPCAttackAnimation(AABCharacterPlayer* CharacterToPlay);
 
 	UFUNCTION(Client, Unreliable)
 	void ClientRPCStopAnimation(AABCharacterPlayer* CharacterToPlay);
@@ -138,6 +137,9 @@ protected:
 protected:
 	void Teleport();
 	void Roll();
+public:
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastRPCRoll();
 
 //PvP Section
 public:

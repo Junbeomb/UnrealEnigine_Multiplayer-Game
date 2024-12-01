@@ -21,7 +21,7 @@ class ARENABATTLE_API UABGunItemData : public UABWeaponItemData
 
 protected:
 
-	bool Attack(bool Authority, bool IsLocally) override;
+	void Attack() override;
 	void AttackFinished() override;
 	void AttackAnim(UAnimInstance* AnimInstance) override;
 	void AttackAnimEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded);

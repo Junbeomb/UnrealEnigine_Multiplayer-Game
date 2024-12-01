@@ -7,6 +7,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "ABCharacterPlayer.h"
 #include "Item/Weapon/ABWeaponItemData.h"
+#include "ArenaBattle.h"
 
 UABCharacterMovementComponent::UABCharacterMovementComponent()
 {
@@ -40,7 +41,7 @@ UABCharacterMovementComponent::UABCharacterMovementComponent()
 
 void UABCharacterMovementComponent::SetTeleportCommand()
 {
-	bPressedTeleport = true;
+	//bPressedTeleport = true;
 }
 
 void UABCharacterMovementComponent::ABTeleport()
@@ -83,7 +84,6 @@ void UABCharacterMovementComponent::ABDodge()
 			MoveTL->PlayFromStart(); // Timeline 시작
 		}
 
-		//UE_LOG(LogTemp, Warning, TEXT("%s"),*TargetLocation.ToString());
 		bDidDodge = true;
 
 		FTimerHandle Handle;
@@ -103,7 +103,7 @@ void UABCharacterMovementComponent::SetRollCommand()
 void UABCharacterMovementComponent::ABRoll()
 {
 	if (CharacterOwner && RollMontage) {
-		CharacterOwner->GetMesh()->GetAnimInstance()->StopAllMontages(0.0f);
+		CharacterOwner->GetMesh()->GetAnimInstance()->StopAllMontages(0.1f);
 		CharacterOwner->GetMesh()->GetAnimInstance()->Montage_Play(RollMontage);
 		AABCharacterPlayer* tempC = Cast<AABCharacterPlayer>(CharacterOwner.Get());
 		if(tempC && tempC->CurrentWeapon) tempC->CurrentWeapon->InitData(); //무기 변수 초기화
@@ -143,7 +143,7 @@ FNetworkPredictionData_Client* UABCharacterMovementComponent::GetPredictionData_
 	return ClientPredictionData;
 }
 
-//매 틱마다 실행
+//매 틱마다 실행 (클라)
 //부모 정의는 비어있음.
 void UABCharacterMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity)
 {
@@ -168,6 +168,12 @@ void UABCharacterMovementComponent::OnMovementUpdated(float DeltaSeconds, const 
 	//구르기===============================
 	if (bPressedRoll && !bDidRoll) {
 		ABRoll();
+
+		//본인이 서버일때는 UpdateFromCompressedFlags()를 실행하지 않으므로 직접 실행시켜야함.
+		if (CharacterOwner->GetLocalRole() == ROLE_Authority) {
+			AABCharacterPlayer* ABPlayer = Cast<AABCharacterPlayer>(CharacterOwner);
+			ABPlayer->MulticastRPCRoll();
+		}
 	}
 	if (bPressedRoll) {
 		bPressedRoll = false;
@@ -181,25 +187,28 @@ void UABCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 {
 	Super::UpdateFromCompressedFlags(Flags);
 
-	bPressedTeleport = (Flags & FSavedMove_Character::FLAG_Custom_0) != 0;
-	bDidTeleport = (Flags & FSavedMove_Character::FLAG_Custom_1) != 0;
+	//bPressedTeleport = (Flags & FSavedMove_Character::FLAG_Custom_0) != 0;
+	//bDidTeleport = (Flags & FSavedMove_Character::FLAG_Custom_1) != 0;
 
 	bPressedDodge = (Flags & FSavedMove_Character::FLAG_Custom_2) != 0;
 	bDidDodge = (Flags & FSavedMove_Character::FLAG_Custom_3) != 0;
 
-	bPressedRoll = (Flags & FSavedMove_Character::FLAG_Custom_4) != 0;
-	bDidRoll = (Flags & FSavedMove_Character::FLAG_Custom_5) != 0;
+	bPressedRoll = (Flags & FSavedMove_Character::FLAG_Custom_0) != 0;
+	bDidRoll = (Flags & FSavedMove_Character::FLAG_Custom_1) != 0;
 
-	//현재 역할이 서버라면
+	//현재 역할이 서버라면 (서버가 본인이 아닐때)
 	if (CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_Authority) {
-		if (bPressedTeleport && !bDidTeleport) {
-			ABTeleport();
-		}
+		//if (bPressedTeleport && !bDidTeleport) {
+		//	ABTeleport();
+		//}
 		if (bPressedDodge && !bDidDodge) {
 			ABDodge();
 		}
 		if (bPressedRoll && !bDidRoll) {
 			ABRoll();
+			//다른 클라도 실행
+			AABCharacterPlayer* ABPlayer = Cast<AABCharacterPlayer>(CharacterOwner);
+			ABPlayer->MulticastRPCRoll();
 		}
 	}
 
@@ -251,12 +260,12 @@ void FABSavedMove_Character::SetInitialPosition(ACharacter* Character)
 uint8 FABSavedMove_Character::GetCompressedFlags() const
 {
 	uint8 Result = Super::GetCompressedFlags();
-	if (bPressedTeleport) {
-		Result = FLAG_Custom_0;
-	}
-	if (bDidTeleport) {
-		Result = FLAG_Custom_1;
-	}
+	//if (bPressedTeleport) {
+	//	Result = FLAG_Custom_0;
+	//}
+	//if (bDidTeleport) {
+	//	Result = FLAG_Custom_1;
+	//}
 
 	if (bPressedDodge) {
 		Result = FLAG_Custom_2;
@@ -266,10 +275,10 @@ uint8 FABSavedMove_Character::GetCompressedFlags() const
 	}
 
 	if (bPressedRoll) {
-		Result = FLAG_Custom_4;
+		Result = FLAG_Custom_0;
 	}
 	if (bDidRoll) {
-		Result = FLAG_Custom_5;
+		Result = FLAG_Custom_1;
 	}
 
 	return Result;
