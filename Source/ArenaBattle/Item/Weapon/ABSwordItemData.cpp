@@ -42,12 +42,7 @@ bool UABSwordItemData::Attack(bool Authority, bool IsLocally)
 {
 	if (!player) return false;
 
-	if (!Authority) {
-		AttackAnim(player->GetMesh()->GetAnimInstance());
-	}
-	else if(!IsLocally){ //서버일 때 && 자신이 서버가 아닐 경우
-		AttackAnim(player->GetMesh()->GetAnimInstance());
-	}
+	AttackAnim(player->GetMesh()->GetAnimInstance());
 	AttackDecreaseSpeed = 0.2f;
 
 	return true;

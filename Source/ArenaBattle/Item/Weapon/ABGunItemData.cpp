@@ -26,9 +26,6 @@ UABGunItemData::UABGunItemData()
 	}
 }
 
-
-
-
 bool UABGunItemData::Attack(bool Authority, bool IsLocally)
 {
 	if (!player) return false;
@@ -36,26 +33,11 @@ bool UABGunItemData::Attack(bool Authority, bool IsLocally)
 	FVector MuzzleLoc = player->GetGunWeapon()->GetSocketLocation("b_gun_muzzleflash");
 	FRotator MuzzleRot = player->GetActorForwardVector().Rotation();
 
-	// (false, true)클라이언트.
-	// (false, false) 도 실행(즉, 다른 클라에 있는 나.))
-	// 서버를 주인공으로 하는 클라도 실행 -> 클라의 Attack을 실행 하므로.(이부분 고치기) Attack에 조건문 추가하면 될듯.
-	if (!Authority) { 
-		player->bCanAttack = false;
-		AttackStartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
-		AttackAnim(player->GetMesh()->GetAnimInstance());
-		GetWorld()->SpawnActor<ABulletTracer>(ABulletTracer::StaticClass(),
-			MuzzleLoc,
-			MuzzleRot);
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleParticle, MuzzleLoc, MuzzleRot);
-	}
-	else if (!IsLocally){ //서버에서 실행하는데, 서버에서 주인공인 아닌 캐릭터 (이미 위에서 한번 실행했으므로.)
-		AttackAnim(player->GetMesh()->GetAnimInstance());
-		GetWorld()->SpawnActor<ABulletTracer>(ABulletTracer::StaticClass(),
-			MuzzleLoc,
-			MuzzleRot);
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleParticle, MuzzleLoc, MuzzleRot);
-	}
-
+	player->bCanAttack = false;
+	AttackStartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+	AttackAnim(player->GetMesh()->GetAnimInstance());
+	GetWorld()->SpawnActor<ABulletTracer>(ABulletTracer::StaticClass(), MuzzleLoc, MuzzleRot);
+	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleParticle, MuzzleLoc, MuzzleRot);
 
 	return true;
 }

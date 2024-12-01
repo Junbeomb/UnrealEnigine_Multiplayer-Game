@@ -11,6 +11,7 @@ ABulletTracer::ABulletTracer()
 	{
 		StaticMesh->SetStaticMesh(MeshAsset.Object);
 	}
+	RootComponent = StaticMesh;
 
 	StaticMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	FRotator Rotation = FRotator(90.0f, 0.0f, 0.0f);  // X축 (Pitch) 방향으로 90도 회전

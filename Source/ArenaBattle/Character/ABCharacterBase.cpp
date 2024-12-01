@@ -112,7 +112,6 @@ AABCharacterBase::AABCharacterBase(const FObjectInitializer& ObjectInitializer)
 
 	// Weapon Component
 	SMWeapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SMWeapon"));
-	SMWeapon->SetupAttachment(GetMesh(),TEXT("hand_rSocket_Gun"));
 }
 
 void AABCharacterBase::PostInitializeComponents()

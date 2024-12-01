@@ -346,12 +346,15 @@ void AABCharacterPlayer::Attack()
 	
 	//[에러] 가끔 공격을 하다보면 캐릭터가 움직이지 않는 현상 발생.
 	//-> Attack 뿐만 아니라 Roll 하면 크래쉬남. 근데 점프랑 방향 전환은 됨. 움직이지 않음.
-	if (!CurrentWeapon->Attack(false,IsLocallyControlled())) return;
+	// 모든 클라 서버 캐릭터에 동시 발생.
+	if (!HasAuthority()) {
+		if (!CurrentWeapon->Attack(HasAuthority(),IsLocallyControlled())) return;
+	}
 
 	ServerRPCAttack(LastAttackStartTime);
 }
 
-//HasAuthority() 에서 실행할 때만 발동.
+//서버 에서 실행할 때만 발동.
 //클라에서 ServerRPCAttack을 호출하면 바로 _Implementation으로 이동.
 bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
 {
@@ -377,7 +380,6 @@ void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 void AABCharacterPlayer::ClientRPCPlayAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
 {
 	if (!CharacterToPlay || !CharacterToPlay->CurrentWeapon) return;
-	//CharacterToPlay->CurrentWeapon->AttackAnim(CharacterToPlay->GetMesh()->GetAnimInstance());
 	CharacterToPlay->CurrentWeapon->Attack(false, false);
 }
 
