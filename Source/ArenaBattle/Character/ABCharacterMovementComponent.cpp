@@ -7,6 +7,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "ABCharacterPlayer.h"
 #include "Item/Weapon/ABWeaponItemData.h"
+#include "CharacterStat/ABCharacterStatComponent.h"
 #include "ArenaBattle.h"
 
 UABCharacterMovementComponent::UABCharacterMovementComponent()
@@ -102,20 +103,23 @@ void UABCharacterMovementComponent::SetRollCommand()
 
 void UABCharacterMovementComponent::ABRoll()
 {
-	if (CharacterOwner && RollMontage) {
-		CharacterOwner->GetMesh()->GetAnimInstance()->StopAllMontages(0.1f);
-		CharacterOwner->GetMesh()->GetAnimInstance()->Montage_Play(RollMontage);
-		AABCharacterPlayer* tempC = Cast<AABCharacterPlayer>(CharacterOwner.Get());
-		if(tempC && tempC->CurrentWeapon) tempC->CurrentWeapon->InitData(); //무기 변수 초기화
+	if (!CharacterOwner || !RollMontage) return;
 
-		bDidRoll = true;
-		FTimerHandle Handle;
-		GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
-			{
-				bDidRoll = false;
-			}
-		), RollCooltime, false, -1.f);
-	}
+	CharacterOwner->GetMesh()->GetAnimInstance()->StopAllMontages(0.1f);
+	CharacterOwner->GetMesh()->GetAnimInstance()->Montage_Play(RollMontage);
+	AABCharacterPlayer* tempC = Cast<AABCharacterPlayer>(CharacterOwner.Get());
+	if(tempC && tempC->CurrentWeapon) tempC->CurrentWeapon->InitData(); //무기 변수 초기화
+
+	bDidRoll = true;
+	FTimerHandle Handle;
+	GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
+		{
+			AABCharacterPlayer* temC2 = Cast<AABCharacterPlayer>(CharacterOwner.Get());
+			if (temC2 && temC2->Stat) temC2->Stat->SetCurrentStat(ECharacterStatus::WeaponMode);
+
+			bDidRoll = false;
+		}
+	), RollCooltime, false, -1.f);
 }
 
 

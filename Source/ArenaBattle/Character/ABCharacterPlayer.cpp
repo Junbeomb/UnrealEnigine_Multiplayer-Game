@@ -311,16 +311,16 @@ void AABCharacterPlayer::EquipWeapon(UABItemData* InItemData)
 
 		if (WeaponItemData->Type == EItemType::Weapon_Gun) {
 			CurrentWeapon = NewObject<UABGunItemData>(this);
-			Stat->SetCurrentStat(ECharacterStatus::GunMode);
 			AnimInstance->ChangeGunMode(true);
 		}
 		if (WeaponItemData->Type == EItemType::Weapon_Sword) {
 			CurrentWeapon = NewObject<UABSwordItemData>(this);
-			Stat->SetCurrentStat(ECharacterStatus::SwordMode);
 			AnimInstance->ChangeGunMode(false);
 		}
+		
 
 		if (SMWeapon && CurrentWeapon) {
+			Stat->SetCurrentStat(ECharacterStatus::WeaponMode);
 			CurrentWeapon->Init(*this);
 			SMWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName(CurrentWeapon->GetSocketName()));
 			SMWeapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
@@ -340,10 +340,11 @@ void AABCharacterPlayer::Attack()
 	IsAttackClick = true;
 
 	if (!CurrentWeapon) return;
+	if (Stat->GetCurrentStat() > ECharacterStatus::WeaponMode) return; //구르기 시는 공격안댐.
+
 	if (GetWorld()->GetGameState()->GetServerWorldTimeSeconds() - LastAttackStartTime < 0.15f) return;
 	LastAttackStartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 
-	
 	//[에러] 가끔 공격을 하다보면 캐릭터가 움직이지 않는 현상 발생.
 	//-> Attack 뿐만 아니라 Roll 하면 크래쉬남. 근데 점프랑 방향 전환은 됨. 움직이지 않음.
 	// 모든 클라 서버 캐릭터에 동시 발생.
@@ -390,10 +391,11 @@ void AABCharacterPlayer::GunAttackFinished()
 {
 	IsAttackClick = false;
 
-	if (bCanAttack || Stat->GetCurrentStat() != ECharacterStatus::GunMode) return;
+	if (bCanAttack || !CurrentWeapon->IsA(UABGunItemData::StaticClass())) return;
 
 	float cTime = 0.28f - (GetWorld()->GetGameState()->GetServerWorldTimeSeconds() - CurrentWeapon->AttackStartTime);
 	cTime = std::max(KINDA_SMALL_NUMBER, cTime);
+
 
 	GetWorld()->GetTimerManager().SetTimer(AttackTimerHandle, FTimerDelegate::CreateLambda([&]
 		{
@@ -574,8 +576,9 @@ void AABCharacterPlayer::Roll()
 	UABCharacterMovementComponent* ABMovement = Cast<UABCharacterMovementComponent>(GetCharacterMovement());
 	if (!ABMovement) return;
 
+	Stat->SetBeforeStat(Stat->GetCurrentStat());
+	Stat->SetCurrentStat(ECharacterStatus::RollMode);
 	ABMovement->SetRollCommand();
-
 
 	//나를 제외한 다른 클라에서도 실행.
 	// 하지만 ServerRPC에서 실행시켜야함. 클라에서는 다른 클라를 알지 못함.

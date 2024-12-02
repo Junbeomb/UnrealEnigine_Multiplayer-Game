@@ -35,10 +35,12 @@ public:
 	FORCEINLINE void AddBaseStat(const FABCharacterStat& InAddBaseStat) { BaseStat = BaseStat + InAddBaseStat; OnStatChanged.Broadcast(GetBaseStat(), GetModifierStat()); }
 	FORCEINLINE void SetBaseStat(const FABCharacterStat& InBaseStat) { BaseStat = InBaseStat; OnStatChanged.Broadcast(GetBaseStat(), GetModifierStat()); }
 	FORCEINLINE void SetCurrentStat(ECharacterStatus ECS){ BaseStat.CurrentStatus = ECS; }
+	FORCEINLINE void SetBeforeStat(ECharacterStatus ECS){ BaseStat.BeforeStatus = ECS; }
 	FORCEINLINE void SetModifierStat(const FABCharacterStat& InModifierStat) { ModifierStat = InModifierStat; OnStatChanged.Broadcast(GetBaseStat(), GetModifierStat()); }
 
 	FORCEINLINE const FABCharacterStat& GetBaseStat() const { return BaseStat; }
 	FORCEINLINE const ECharacterStatus& GetCurrentStat() const { return BaseStat.CurrentStatus; }
+	FORCEINLINE const ECharacterStatus& GetBeforeStat() const { return BaseStat.BeforeStatus; }
 	FORCEINLINE const FABCharacterStat& GetModifierStat() const { return ModifierStat; }
 	FORCEINLINE FABCharacterStat GetTotalStat() const { return BaseStat + ModifierStat; }
 	FORCEINLINE float GetCurrentHp() const { return CurrentHp; }

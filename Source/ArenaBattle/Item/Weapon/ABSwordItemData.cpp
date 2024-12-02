@@ -97,7 +97,7 @@ void UABSwordItemData::ComboActionBegin()
 
 void UABSwordItemData::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
 {
-	ensure(CurrentCombo != 0);
+	//ensure(CurrentCombo != 0);
 
 	CurrentCombo = 0;
 	AttackDecreaseSpeed = 1.f;

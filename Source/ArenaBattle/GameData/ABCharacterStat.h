@@ -9,8 +9,8 @@ UENUM()
 enum class ECharacterStatus : uint8
 {
 	IdleMode,
-	SwordMode,
-	GunMode
+	WeaponMode,
+	RollMode
 };
 
 USTRUCT(BlueprintType)
@@ -23,6 +23,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stat)
 	ECharacterStatus CurrentStatus{ ECharacterStatus::IdleMode };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stat)
+	ECharacterStatus BeforeStatus{ ECharacterStatus::IdleMode };
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stat)
 	float MaxHp;
