@@ -6,4 +6,5 @@
 UABPotionItemData::UABPotionItemData()
 {
 	Type = EItemType::Potion;
+
 }

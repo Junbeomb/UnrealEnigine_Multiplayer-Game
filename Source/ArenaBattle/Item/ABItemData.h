@@ -22,7 +22,7 @@ UCLASS()
 class ARENABATTLE_API UABItemData : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
-	
+
 public:
 	FPrimaryAssetId GetPrimaryAssetId() const override
 	{
@@ -32,4 +32,7 @@ public:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Type)
 	EItemType Type;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UStaticMesh> SMShowMesh;
 };

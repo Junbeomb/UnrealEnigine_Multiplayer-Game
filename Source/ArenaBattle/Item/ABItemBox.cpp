@@ -25,10 +25,10 @@ AABItemBox::AABItemBox()
 	Trigger->SetBoxExtent(FVector(40.0f, 42.0f, 30.0f));
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> BoxMeshRef(TEXT("/Script/Engine.StaticMesh'/Game/ArenaBattle/Environment/Props/SM_Env_Breakables_Box1.SM_Env_Breakables_Box1'"));
-	if (BoxMeshRef.Object)
-	{
+	if (BoxMeshRef.Object) {
 		Mesh->SetStaticMesh(BoxMeshRef.Object);
 	}
+
 	Mesh->SetRelativeLocation(FVector(0.0f, -3.5f, -30.0f));
 	Mesh->SetCollisionProfileName(TEXT("NoCollision"));
 
@@ -39,6 +39,8 @@ AABItemBox::AABItemBox()
 		Effect->bAutoActivate = false;
 	}
 }
+
+
 
 void AABItemBox::PostInitializeComponents()
 {
@@ -60,11 +62,15 @@ void AABItemBox::PostInitializeComponents()
 		Item = Cast<UABItemData>(AssetPtr.Get());
 	}
 
-
 	ensure(Item);
+
+	if (Item->SMShowMesh) {
+		Mesh->SetStaticMesh(Item->SMShowMesh);
+	}
 
 	Trigger->OnComponentBeginOverlap.AddDynamic(this, &AABItemBox::OnOverlapBegin);
 }
+
 
 void AABItemBox::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepHitResult)
 {

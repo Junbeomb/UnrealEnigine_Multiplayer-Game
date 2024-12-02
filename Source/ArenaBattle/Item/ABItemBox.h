@@ -18,6 +18,7 @@ public:
 	FORCEINLINE class UBoxComponent* GetTrigger() { return Trigger; }
 
 protected:
+
 	virtual void PostInitializeComponents() override;
 
 protected:
