@@ -28,10 +28,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = Box)
 	TObjectPtr<class UStaticMeshComponent> Mesh;
 
-	UPROPERTY(VisibleAnywhere, Category = Effect)
+	UPROPERTY(VisibleAnywhere, Category = Box)
 	TObjectPtr<class UParticleSystemComponent> Effect;
 
-	UPROPERTY(EditAnywhere, Category = Item)
+	UPROPERTY(EditAnywhere, Category = Box)
 	TObjectPtr<class UABItemData> Item;
 
 	UFUNCTION()

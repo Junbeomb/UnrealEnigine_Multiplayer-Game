@@ -22,14 +22,13 @@ AABItemBox::AABItemBox()
 	Effect->SetupAttachment(Trigger);
 
 	Trigger->SetCollisionProfileName(CPROFILE_ABTRIGGER);
-	Trigger->SetBoxExtent(FVector(40.0f, 42.0f, 30.0f));
+	Trigger->SetBoxExtent(FVector(20.f, 20.f, 20.f));
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> BoxMeshRef(TEXT("/Script/Engine.StaticMesh'/Game/ArenaBattle/Environment/Props/SM_Env_Breakables_Box1.SM_Env_Breakables_Box1'"));
 	if (BoxMeshRef.Object) {
 		Mesh->SetStaticMesh(BoxMeshRef.Object);
 	}
 
-	Mesh->SetRelativeLocation(FVector(0.0f, -3.5f, -30.0f));
 	Mesh->SetCollisionProfileName(TEXT("NoCollision"));
 
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> EffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ArenaBattle/Effect/P_TreasureChest_Open_Mesh.P_TreasureChest_Open_Mesh'"));
@@ -46,6 +45,8 @@ void AABItemBox::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+
+	//아이템 지정하지 않았으면 랜덤.
 	if (!::IsValid(Item)) {
 		UAssetManager& Manager = UAssetManager::Get();
 
@@ -63,10 +64,6 @@ void AABItemBox::PostInitializeComponents()
 	}
 
 	ensure(Item);
-
-	if (Item->SMShowMesh) {
-		Mesh->SetStaticMesh(Item->SMShowMesh);
-	}
 
 	Trigger->OnComponentBeginOverlap.AddDynamic(this, &AABItemBox::OnOverlapBegin);
 }
