@@ -12,7 +12,7 @@
 #include "CharacterStat/ABCharacterStatComponent.h"
 
 #include "UI/ABWidgetComponent.h"
-#include "UI/ABHpBarWidget.h"
+#include "UI/Child/ABHpBarWidget.h"
 
 #include "Item/ABItems.h"
 #include "Item/Weapon/ABWeaponItemData.h"

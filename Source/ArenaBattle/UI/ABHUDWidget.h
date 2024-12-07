@@ -21,6 +21,7 @@ public:
 public:
 	void UpdateStat(const FABCharacterStat& BaseStat, const FABCharacterStat& ModifierStat);
 	void UpdateHpBar(float NewCurrentHp, float NewMaxHp);
+	void UpdatePressE(bool);
 
 protected:
 	virtual void NativeConstruct() override;

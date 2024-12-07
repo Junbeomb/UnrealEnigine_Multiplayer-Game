@@ -133,6 +133,9 @@ public:
 protected:
 	virtual void SetupHUDWidget(class UABHUDWidget* InHUDWidget) override;
 
+public:
+	bool ItemOverlapToggle{};
+
 //Move Section
 protected:
 	void Teleport();

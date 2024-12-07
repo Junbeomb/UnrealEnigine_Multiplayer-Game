@@ -3,8 +3,8 @@
 
 #include "UI/ABHUDWidget.h"
 #include "Interface/ABCharacterHUDInterface.h"
-#include "ABHpBarWidget.h"
-#include "ABCharacterStatWidget.h"
+#include "Child/ABHpBarWidget.h"
+#include "Child/ABCharacterStatWidget.h"
 
 UABHUDWidget::UABHUDWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -20,6 +20,10 @@ void UABHUDWidget::UpdateStat(const FABCharacterStat& BaseStat, const FABCharact
 void UABHUDWidget::UpdateHpBar(float NewCurrentHp, float NewMaxHp)
 {
 	HpBar->UpdateHpBar(NewCurrentHp, NewMaxHp);
+}
+
+void UABHUDWidget::UpdatePressE(bool IsOn)
+{
 }
 
 void UABHUDWidget::NativeConstruct()

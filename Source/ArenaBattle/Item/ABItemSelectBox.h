@@ -12,9 +12,6 @@ class ARENABATTLE_API AABItemSelectBox : public AActor
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = Select)
-	TObjectPtr<class USphereComponent> Trigger;
-
-	UPROPERTY(EditAnywhere, Category = Select)
 	TObjectPtr<class UStaticMeshComponent> Mesh;
 
 	UPROPERTY(EditAnywhere, Category = Select)
@@ -23,11 +20,12 @@ class ARENABATTLE_API AABItemSelectBox : public AActor
 	UPROPERTY(EditAnywhere, Category = Select)
 	TObjectPtr<class UParticleSystemComponent> Effect;
 
-
+	UPROPERTY(VisibleAnywhere, Category=Select)
+	TObjectPtr<class UABSelectComp> SelectComp;
 	
 public:	
 	AABItemSelectBox();
-	FORCEINLINE class USphereComponent* GetTrigger() { return Trigger; }
+	//FORCEINLINE class USphereComponent* GetTrigger() { return Trigger; }
 
 protected:
 	virtual void PostInitializeComponents() override;
