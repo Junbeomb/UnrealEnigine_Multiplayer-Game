@@ -30,6 +30,8 @@
 #include "Item/Weapon/ABSwordItemData.h"
 #include "Animation/ABAnimInstance.h"
 
+#include "Item/ABItemSelectBox.h"
+
 
 AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer.SetDefaultSubobjectClass<UABCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -97,6 +99,12 @@ AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializ
 	if (nullptr != InputActionRollRef.Object)
 	{
 		RollAction = InputActionRollRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> InputActionInteractRef(TEXT("/Script/EnhancedInput.InputAction'/Game/ArenaBattle/Input/Actions/IA_Interact.IA_Interact'"));
+	if (InputActionInteractRef.Object)
+	{
+		InteractAction = InputActionInteractRef.Object;
 	}
 
 	CurrentCharacterControlType = ECharacterControlType::Quater;
@@ -179,6 +187,7 @@ void AABCharacterPlayer::SetupPlayerInputComponent(class UInputComponent* Player
 
 	EnhancedInputComponent->BindAction(TeleportAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Teleport);
 	EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Roll);
+	EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Interact);
 
 	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AABCharacterPlayer::Attack);
 	EnhancedInputComponent->BindAction(AttackActionRelease, ETriggerEvent::Triggered, this, &AABCharacterPlayer::GunAttackFinished);
@@ -562,6 +571,11 @@ void AABCharacterPlayer::SetupHUDWidget(UABHUDWidget* InHUDWidget)
 		Stat->OnStatChanged.AddUObject(InHUDWidget, &UABHUDWidget::UpdateStat);
 		Stat->OnHpChanged.AddUObject(InHUDWidget, &UABHUDWidget::UpdateHpBar);
 	}
+}
+
+void AABCharacterPlayer::Interact()
+{
+	CurrentSelectBox->DestroyThis();
 }
 
 void AABCharacterPlayer::Teleport()

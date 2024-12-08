@@ -12,7 +12,12 @@ class ARENABATTLE_API UABSelectComp : public UActorComponent
 	GENERATED_BODY()
 
 
-	TObjectPtr<class USphereComponent> SphereComp;
+
+	TObjectPtr<UMaterialInterface> OverlayMat;
+
+	TObjectPtr<UStaticMeshComponent> OwnerMesh;
+
+	bool IsOverlap{ false };
 
 protected:
 	virtual void BeginPlay() override;
@@ -25,6 +30,7 @@ protected:
 public:	
 	UABSelectComp();
 
+	TObjectPtr<class USphereComponent> SphereComp;
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	

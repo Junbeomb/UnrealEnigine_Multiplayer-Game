@@ -71,6 +71,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> RollAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> InteractAction;
+
 	void ShoulderMove(const FInputActionValue& Value);
 	void ShoulderLook(const FInputActionValue& Value);
 
@@ -135,6 +138,11 @@ protected:
 
 public:
 	bool ItemOverlapToggle{};
+
+//InteractSection
+public:
+	void Interact();
+	TObjectPtr<class AABItemSelectBox> CurrentSelectBox;
 
 //Move Section
 protected:

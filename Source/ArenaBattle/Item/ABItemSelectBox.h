@@ -27,6 +27,8 @@ public:
 	AABItemSelectBox();
 	//FORCEINLINE class USphereComponent* GetTrigger() { return Trigger; }
 
+	void DestroyThis();
+
 protected:
 	virtual void PostInitializeComponents() override;
 

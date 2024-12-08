@@ -15,8 +15,15 @@ AABItemSelectBox::AABItemSelectBox()
 		Mesh->SetStaticMesh(SelectMeshRef.Object);
 	}
 
+
 	SelectComp = CreateDefaultSubobject<UABSelectComp>(TEXT("SelectComp"));
 	
+}
+
+void AABItemSelectBox::DestroyThis()
+{
+	SelectComp->DestroyComponent();
+	Destroy();
 }
 
 void AABItemSelectBox::PostInitializeComponents()
