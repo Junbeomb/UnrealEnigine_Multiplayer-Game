@@ -7,6 +7,10 @@
 
 /Content
 
+/Source/ArenaBattle/Character/ABCharacterBase.cpp
+/Source/ArenaBattle/Character/ABCharacterBase.h
+
+
 /Config
 *.bat
 .vscode
